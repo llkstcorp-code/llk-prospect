@@ -4,6 +4,7 @@ const REQUEST_TIMEOUT_MS = 12_000;
 export interface GeoapifyProperties {
   place_id?: string;
   feature_type?: string;
+  details?: string[];
   name?: string;
   categories?: string[];
   formatted?: string;

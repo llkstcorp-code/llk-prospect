@@ -7,7 +7,10 @@ import { geocodeCity, placeDetails, searchPlaces } from "./client";
 import type { GeoapifyFeature } from "./client";
 import { toBusiness } from "./mapper";
 
-const RESULT_LIMIT = 40;
+// A Geoapify aceita ate 500 por requisicao. Mantemos um teto porque cada
+// resultado enriquecido custa uma chamada extra de /v2/place-details, e uma
+// capital inteira estouraria a cota diaria numa unica busca.
+const RESULT_LIMIT = 200;
 const DETAILS_CONCURRENCY = 4;
 
 function today(): string {
@@ -25,6 +28,9 @@ async function enrichInBatches(
       batch.map(async (feature) => {
         const id = feature.properties.place_id;
         if (!id) return feature;
+        // details vazio significa que a Geoapify nao tem nada alem do que ja
+        // veio em /v2/places: a chamada extra so gastaria cota.
+        if (feature.properties.details?.length === 0) return feature;
         const details = await placeDetails(id);
         if (!details) return feature;
         return {
