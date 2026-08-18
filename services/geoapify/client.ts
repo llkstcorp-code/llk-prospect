@@ -90,6 +90,33 @@ export async function geocodeCity(
   return result;
 }
 
+function mergeAlternating(
+  groups: GeoapifyFeature[][],
+  limit: number
+): GeoapifyFeature[] {
+  const merged: GeoapifyFeature[] = [];
+  const seen = new Set<string>();
+  const depth = Math.max(0, ...groups.map((group) => group.length));
+
+  for (let index = 0; index < depth && merged.length < limit; index += 1) {
+    for (const group of groups) {
+      const feature = group[index];
+      if (!feature) continue;
+
+      const id = feature.properties.place_id;
+      if (id) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+      }
+
+      merged.push(feature);
+      if (merged.length >= limit) break;
+    }
+  }
+
+  return merged;
+}
+
 export async function searchPlaces(input: {
   categories: string;
   latitude: number;
@@ -98,15 +125,48 @@ export async function searchPlaces(input: {
   limit?: number;
 }): Promise<GeoapifyFeature[]> {
   const radius = Math.round(input.radiusKm * 1000);
-  const response = await requestJson<FeatureCollection>("/v2/places", {
-    categories: input.categories,
-    filter: `circle:${input.longitude},${input.latitude},${radius}`,
-    bias: `proximity:${input.longitude},${input.latitude}`,
-    limit: String(input.limit ?? 40),
-    lang: "pt",
-  });
+  const limit = input.limit ?? 40;
+  const groups = input.categories
+    .split(",")
+    .map((category) => category.trim())
+    .filter(Boolean);
 
-  return response.features ?? [];
+  // A Geoapify intersecta em vez de unir quando categorias de grupos
+  // diferentes vao na mesma requisicao: "accommodation,catering" numa cidade
+  // com um unico hotel devolve so esse hotel. Buscamos cada grupo isolado e
+  // unimos aqui, alternando entre eles para nao enviesar o corte pelo limite.
+  const settled = await Promise.allSettled(
+    groups.map(async (category) => {
+      const response = await requestJson<FeatureCollection>("/v2/places", {
+        categories: category,
+        filter: `circle:${input.longitude},${input.latitude},${radius}`,
+        bias: `proximity:${input.longitude},${input.latitude}`,
+        limit: String(limit),
+        lang: "pt",
+      });
+      return response.features ?? [];
+    })
+  );
+
+  const fulfilled = settled.filter(
+    (result): result is PromiseFulfilledResult<GeoapifyFeature[]> =>
+      result.status === "fulfilled"
+  );
+
+  // Uma categoria que falha nao pode derrubar a busca inteira, mas se todas
+  // falharem o erro precisa subir em vez de virar "nenhum resultado".
+  if (fulfilled.length === 0) {
+    const firstRejection = settled.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected"
+    );
+    if (firstRejection) throw firstRejection.reason;
+    return [];
+  }
+
+  return mergeAlternating(
+    fulfilled.map((result) => result.value),
+    limit
+  );
 }
 
 const detailsCache = new Map<string, GeoapifyFeature | null>();
