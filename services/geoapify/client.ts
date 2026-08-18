@@ -18,6 +18,8 @@ export interface GeoapifyProperties {
   lon?: number;
   website?: string;
   contact?: { phone?: string };
+  /** Tags cruas do OpenStreetMap: marca, endereço detalhado e afins. */
+  datasource?: { raw?: Record<string, unknown> };
 }
 
 export interface GeoapifyFeature {
@@ -133,9 +135,9 @@ export async function searchPlaces(input: {
     .filter(Boolean);
 
   // A Geoapify intersecta em vez de unir quando categorias de grupos
-  // diferentes vao na mesma requisicao: "accommodation,catering" numa cidade
-  // com um unico hotel devolve so esse hotel. Buscamos cada grupo isolado e
-  // unimos aqui, alternando entre eles para nao enviesar o corte pelo limite.
+  // diferentes vão na mesma requisição: "accommodation,catering" numa cidade
+  // com um único hotel devolve só esse hotel. Buscamos cada grupo isolado e
+  // unimos aqui, alternando entre eles para não enviesar o corte pelo limite.
   const settled = await Promise.allSettled(
     groups.map(async (category) => {
       const response = await requestJson<FeatureCollection>("/v2/places", {
@@ -154,7 +156,7 @@ export async function searchPlaces(input: {
       result.status === "fulfilled"
   );
 
-  // Uma categoria que falha nao pode derrubar a busca inteira, mas se todas
+  // Uma categoria que falha não pode derrubar a busca inteira, mas se todas
   // falharem o erro precisa subir em vez de virar "nenhum resultado".
   if (fulfilled.length === 0) {
     const firstRejection = settled.find(

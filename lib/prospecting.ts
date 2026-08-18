@@ -1,5 +1,5 @@
 import { MOCK_SERVICES } from "@/data/mockServices";
-import { SCORE_MAX } from "@/lib/score";
+import { SCORE_MAX, SCORE_MIN } from "@/lib/score";
 import type { CategoryId } from "@/types";
 
 /**
@@ -74,8 +74,14 @@ export function estimateValue(serviceId: string): number {
 
 export interface GeoapifyScoreInput {
   hasWebsite: boolean;
+  /** A Geoapify tinha ficha de detalhes: a ausência de site foi conferida. */
+  websiteChecked: boolean;
   hasPhone: boolean;
+  hasStreetAddress: boolean;
   hasAddress: boolean;
+  /** Rede ou franquia (tag brand/operator no OpenStreetMap). */
+  isChain: boolean;
+  hasName: boolean;
   category: CategoryId;
 }
 
@@ -90,20 +96,66 @@ const HIGH_DIGITAL_NEED = new Set<CategoryId>([
   "imobiliaria",
 ]);
 
+const KNOWN_DIGITAL_NEED = new Set<CategoryId>([
+  "loja",
+  "oficina",
+  "construcao",
+  "prestador",
+]);
+
+/**
+ * Rede não contrata site de agência local: a decisão é da matriz e a
+ * presença digital já existe. Penaliza sem zerar, porque a filial ainda pode
+ * virar cliente de serviços menores.
+ */
+const CHAIN_PENALTY = 25;
+
+/**
+ * Quanto temos para vender. Sem ficha de detalhes na Geoapify não dá para
+ * afirmar que a empresa não tem site — só que a fonte não sabe. Esse caso
+ * fica no meio, entre o site confirmado e a ausência confirmada.
+ */
+function getDigitalGapPoints(input: GeoapifyScoreInput): number {
+  if (input.hasWebsite) return 8;
+  return input.websiteChecked ? 40 : 26;
+}
+
+/** Quão perto estamos de conseguir falar com essa empresa. */
+function getContactPoints(input: GeoapifyScoreInput): number {
+  if (input.hasPhone) return 20;
+  if (input.hasStreetAddress) return 12;
+  if (input.hasAddress) return 6;
+  return 0;
+}
+
+function getCategoryNeedPoints(category: CategoryId): number {
+  if (HIGH_DIGITAL_NEED.has(category)) return 22;
+  return KNOWN_DIGITAL_NEED.has(category) ? 14 : 8;
+}
+
+/** Cadastro sem nome não dá para abordar: some da frente da fila. */
+function getIdentityPoints(input: GeoapifyScoreInput): number {
+  return input.hasName ? 18 : 0;
+}
+
 /** Score preliminar para fontes que não oferecem nota nem avaliações. */
 export function computeGeoapifyScore(input: GeoapifyScoreInput): number {
-  const digitalGap = input.hasWebsite ? 16 : 45;
-  const contactability = input.hasPhone ? 20 : 7;
-  const localNeed = HIGH_DIGITAL_NEED.has(input.category) ? 22 : 14;
-  const completeness = input.hasAddress ? 10 : 4;
+  const total =
+    getDigitalGapPoints(input) +
+    getContactPoints(input) +
+    getCategoryNeedPoints(input.category) +
+    getIdentityPoints(input) -
+    (input.isChain ? CHAIN_PENALTY : 0);
 
-  return Math.min(digitalGap + contactability + localNeed + completeness, SCORE_MAX);
+  return Math.max(SCORE_MIN, Math.min(total, SCORE_MAX));
 }
 
 export function deriveGeoapifyProblem(input: GeoapifyScoreInput): string {
-  if (!input.hasWebsite) return "Não possui site cadastrado";
-  if (!input.hasPhone) return "Presença digital com contato incompleto";
-  return "Presença digital pode ser otimizada";
+  if (input.isChain) return "Rede com presença digital própria";
+  if (!input.hasName) return "Cadastro sem nome na fonte";
+  if (input.hasWebsite) return "Presença digital pode ser otimizada";
+  if (input.websiteChecked) return "Não possui site";
+  return "Site não identificado nas fontes públicas";
 }
 
 export function recommendGeoapifyServiceId(

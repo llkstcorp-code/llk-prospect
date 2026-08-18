@@ -17,10 +17,17 @@ export function toBusiness(
   const website = place.website ?? null;
   const phone = place.contact?.phone ?? null;
   const category = toCategoryId(place.categories);
+  const raw = place.datasource?.raw ?? {};
   const scoreInput = {
     hasWebsite: Boolean(website),
+    // Sem ficha de detalhes a Geoapify não consultou site nenhum, então a
+    // ausência não pode ser lida como "essa empresa não tem site".
+    websiteChecked: (place.details?.length ?? 0) > 0,
     hasPhone: Boolean(phone),
+    hasStreetAddress: Boolean(raw["addr:street"] && raw["addr:housenumber"]),
     hasAddress: Boolean(place.address_line1 || place.formatted),
+    isChain: Boolean(raw.brand || raw["brand:wikidata"] || raw.operator),
+    hasName: Boolean(place.name),
     category,
   };
   const serviceId = recommendGeoapifyServiceId(scoreInput);
