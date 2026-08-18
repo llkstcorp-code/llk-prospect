@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronsUpDown, LogOut, Settings, UserRound } from "lucide-react";
+import {
+  ChevronsUpDown,
+  LogOut,
+  Monitor,
+  Moon,
+  Settings,
+  Sun,
+  UserRound,
+} from "lucide-react";
 
 import { useToast } from "@/components/common/toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,10 +18,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme, type Theme } from "@/store/theme-store";
 import type { UserProfile } from "@/types";
+
+const THEME_OPTIONS: Array<{
+  value: Theme;
+  label: string;
+  icon: typeof Sun;
+}> = [
+  { value: "claro", label: "Claro", icon: Sun },
+  { value: "escuro", label: "Escuro", icon: Moon },
+  { value: "sistema", label: "Do sistema", icon: Monitor },
+];
 
 interface UserMenuProps {
   user: UserProfile;
@@ -23,6 +44,7 @@ interface UserMenuProps {
 
 export function UserMenu({ user, onNavigate }: UserMenuProps) {
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
@@ -60,6 +82,21 @@ export function UserMenu({ user, onNavigate }: UserMenuProps) {
             Configurações
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          Tema
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(value) => setTheme(value as Theme)}
+        >
+          {THEME_OPTIONS.map((option) => (
+            <DropdownMenuRadioItem key={option.value} value={option.value}>
+              <option.icon className="size-4 text-muted-foreground" />
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() =>

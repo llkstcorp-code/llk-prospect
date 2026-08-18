@@ -33,12 +33,36 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Aplica o tema antes da primeira pintura.
+ *
+ * Sem isso a página aparece clara e escurece depois que o React hidrata, o que
+ * pisca na cara de quem usa o tema escuro. Precisa ser inline e síncrono.
+ */
+const THEME_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("llk-tema");
+    var dark =
+      stored === "escuro" ||
+      ((!stored || stored === "sistema") &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+  } catch (error) {}
+})();
+`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col bg-background">
         <ToastProvider>
           <TooltipProvider delayDuration={200}>

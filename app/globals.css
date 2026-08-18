@@ -138,13 +138,27 @@
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.62 0.16 258);
 
-  --brand: oklch(0.62 0.16 258);
-  --brand-foreground: oklch(0.99 0 0);
+  /*
+   * No claro estas cores sao escuras porque vivem sobre superficie clara. No
+   * escuro a relacao inverte: elas viram texto e icone sobre superficie escura,
+   * entao precisam de luminosidade alta. Sem isso o badge "Excelente" ficava
+   * verde-escuro sobre verde-escuro (contraste 2,2:1).
+   */
+  --brand: oklch(0.72 0.14 258);
+  --brand-foreground: oklch(0.18 0.03 258);
   --brand-surface: oklch(0.3 0.05 258);
+
+  --positive: oklch(0.78 0.13 158);
   --positive-surface: oklch(0.3 0.05 158);
+  --negative: oklch(0.72 0.16 25);
+
+  --score-low: oklch(0.76 0.008 260);
   --score-low-surface: oklch(0.28 0.002 260);
+  --score-medium: oklch(0.82 0.12 80);
   --score-medium-surface: oklch(0.3 0.04 80);
+  --score-good: oklch(0.8 0.1 190);
   --score-good-surface: oklch(0.3 0.035 190);
+  --score-high: oklch(0.8 0.13 158);
   --score-high-surface: oklch(0.3 0.045 158);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
