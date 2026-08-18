@@ -6,7 +6,7 @@ import type {
   BusinessAnalysis,
   CategoryId,
 } from "@/types";
-import { delay } from "./api";
+import { API_ENDPOINTS } from "./api";
 
 /**
  * Camada de inteligência da prospecção.
@@ -138,7 +138,7 @@ function buildIndicators(business: Business): AnalysisIndicator[] {
 function buildReasons(business: Business): string[] {
   const reasons: string[] = [];
 
-  reasons.push(business.website ? business.problem : "Não possui site");
+  reasons.push(business.problem);
 
   if (!hasPublicRating(business)) {
     reasons.push("Oportunidade identificada por presença digital");
@@ -170,13 +170,15 @@ function buildReasons(business: Business): string[] {
 }
 
 function buildSummary(business: Business): string {
-  const gap = business.website
-    ? business.problem.toLocaleLowerCase("pt-BR")
-    : "não possui um site próprio";
+  // A lacuna sempre vem de `problem`, que ja sabe distinguir "nao tem site" de
+  // "a fonte nao informou" e de rede com site proprio. Afirmar ausencia de site
+  // por conta propria produzia frases falsas para redes como a Drogasil.
+  const gap = business.problem.toLocaleLowerCase("pt-BR");
 
   if (!hasPublicRating(business)) {
     return [
-      `A ${business.name} foi identificada na região de ${business.city} e ${gap}. `,
+      `A ${business.name} foi identificada na região de ${business.city} e o `,
+      `ponto observado foi: ${gap}. `,
       `Os dados públicos disponíveis indicam uma oportunidade para fortalecer `,
       `a presença digital e ${getContext(business.category).opportunity}. `,
       `A reputação por avaliações não está disponível nesta fonte.`,
@@ -186,7 +188,8 @@ function buildSummary(business: Business): string {
   return [
     `A empresa possui ${getReputationWord(business)} reputação no Google, com `,
     `${business.reviews} avaliações e nota ${formatRating(business.rating)}, `,
-    `mas ${gap}. Isso representa uma oportunidade para criar uma presença `,
+    `e o ponto observado foi: ${gap}. Isso representa uma oportunidade para `,
+    `criar uma presença `,
     `digital profissional e ${getContext(business.category).opportunity}.`,
   ].join("");
 }
@@ -194,13 +197,11 @@ function buildSummary(business: Business): string {
 /** Mensagem de abordagem sugerida para o primeiro contato. */
 export function buildPitch(business: Business, serviceName: string): string {
   const context = getContext(business.category);
-  const gap = business.website
-    ? business.problem.toLocaleLowerCase("pt-BR")
-    : "ainda não possuem um site próprio";
+  const gap = business.problem.toLocaleLowerCase("pt-BR");
 
   const introduction = hasPublicRating(business)
-    ? `Encontrei a ${business.name} no Google e percebi que vocês possuem uma excelente avaliação e bastante procura, mas ${gap}. `
-    : `Encontrei a ${business.name} pesquisando empresas da região e percebi que ${gap}. `;
+    ? `Encontrei a ${business.name} no Google e percebi que vocês possuem uma excelente avaliação e bastante procura. Sobre a presença digital, notei: ${gap}. `
+    : `Encontrei a ${business.name} pesquisando empresas da região e notei o seguinte sobre a presença digital de vocês: ${gap}. `;
 
   return [
     `Olá! Tudo bem? ${introduction}`,
@@ -210,17 +211,8 @@ export function buildPitch(business: Business, serviceName: string): string {
   ].join("");
 }
 
-/**
- * POST /api/businesses/:id/analyze
- *
- * Recebe a empresa já carregada para não consultar o Google duas vezes na mesma
- * tela — a análise é derivada dos dados, não de uma nova busca.
- */
-export async function analyzeBusiness(
-  business: Business
-): Promise<BusinessAnalysis> {
-  await delay(600);
-
+/** Análise derivada só dos dados, sem depender de rede. */
+export function buildTemplateAnalysis(business: Business): BusinessAnalysis {
   const service =
     getServiceById(business.recommendedServiceId) ?? MOCK_SERVICES[0];
 
@@ -233,4 +225,29 @@ export async function analyzeBusiness(
     estimatedValue: service.price,
     pitch: buildPitch(business, service.name),
   };
+}
+
+/**
+ * POST /api/businesses/:id/analyze
+ *
+ * O resumo e a abordagem são escritos pela Gemini no servidor, onde a chave
+ * vive. Se a rota falhar, o template local responde no lugar — a tela nunca
+ * fica sem análise.
+ */
+export async function analyzeBusiness(
+  business: Business
+): Promise<BusinessAnalysis> {
+  try {
+    const response = await fetch(API_ENDPOINTS.analyzeBusiness(business.id), {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ business }),
+    });
+    if (!response.ok) throw new Error(`Análise falhou: ${response.status}`);
+    return (await response.json()) as BusinessAnalysis;
+  } catch (error) {
+    console.error("Análise via API indisponível, usando template:", error);
+    return buildTemplateAnalysis(business);
+  }
 }
