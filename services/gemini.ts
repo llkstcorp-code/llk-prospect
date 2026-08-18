@@ -13,8 +13,9 @@ const GEMINI_MODEL = "gemini-3.6-flash";
 /** Sobrecarga do modelo e temporaria: uma segunda tentativa costuma passar. */
 const RETRY_STATUSES = new Set([429, 503]);
 const RETRY_DELAY_MS = 1_200;
-// Duas tentativas mais a espera precisam caber no maxDuration da rota (30s).
-const REQUEST_TIMEOUT_MS = 12_000;
+// Duas tentativas mais a espera precisam caber no maxDuration da rota (60s).
+// 12s derrubava a primeira chamada depois de cold start em producao.
+const REQUEST_TIMEOUT_MS = 20_000;
 
 const SYSTEM_INSTRUCTION = [
   "Você escreve para a LLK, agência de criação de sites do interior de Minas ",
