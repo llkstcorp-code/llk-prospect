@@ -9,13 +9,21 @@ import type { Business } from "@/types";
  */
 
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODEL = "gemini-3.6-flash";
-/** Sobrecarga do modelo e temporaria: uma segunda tentativa costuma passar. */
-const RETRY_STATUSES = new Set([429, 503]);
-const RETRY_DELAY_MS = 1_200;
-// Duas tentativas mais a espera precisam caber no maxDuration da rota (60s).
-// 12s derrubava a primeira chamada depois de cold start em producao.
-const REQUEST_TIMEOUT_MS = 20_000;
+/**
+ * Cota e sobrecarga sao contadas por modelo. Repetir o mesmo modelo que acabou
+ * de responder 429 nao adianta, entao a lista e percorrida em ordem: os lite
+ * tem limite gratuito mais folgado e seguram o dia a dia, e o flash maior fica
+ * como ultimo recurso.
+ */
+const GEMINI_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3.6-flash",
+];
+const FALLBACK_STATUSES = new Set([429, 503]);
+// Ate tres modelos podem ser tentados, e o total precisa caber no
+// maxDuration de 60s da rota.
+const REQUEST_TIMEOUT_MS = 18_000;
 
 const SYSTEM_INSTRUCTION = [
   "Você escreve para a LLK, agência de criação de sites do interior de Minas ",
@@ -69,8 +77,12 @@ function buildPrompt(business: Business, serviceName: string): string {
   ].join("\n");
 }
 
-function callGemini(apiKey: string, body: string): Promise<Response> {
-  return fetch(`${GEMINI_ENDPOINT}/models/${GEMINI_MODEL}:generateContent`, {
+function callGemini(
+  model: string,
+  apiKey: string,
+  body: string
+): Promise<Response> {
+  return fetch(`${GEMINI_ENDPOINT}/models/${model}:generateContent`, {
     method: "POST",
     cache: "no-store",
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -110,32 +122,32 @@ export async function generateBusinessCopy(
     },
   });
 
-  try {
-    let response = await callGemini(apiKey, body);
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await callGemini(model, apiKey, body);
 
-    if (RETRY_STATUSES.has(response.status)) {
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      response = await callGemini(apiKey, body);
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        console.error(
+          `Gemini (${model}) respondeu ${response.status}: ${detail.slice(0, 200)}`
+        );
+        if (FALLBACK_STATUSES.has(response.status)) continue;
+        return null;
+      }
+
+      const payload = (await response.json()) as GeminiResponse;
+      const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) continue;
+
+      const parsed = JSON.parse(text) as Partial<GeneratedCopy>;
+      if (!parsed.summary?.trim() || !parsed.pitch?.trim()) continue;
+
+      return { summary: parsed.summary.trim(), pitch: parsed.pitch.trim() };
+    } catch (error) {
+      // Tempo esgotado ou rede: ainda vale tentar o proximo modelo.
+      console.error(`Falha ao gerar texto na Gemini (${model}):`, error);
     }
-
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.error(
-        `Gemini respondeu ${response.status}: ${detail.slice(0, 300)}`
-      );
-      return null;
-    }
-
-    const payload = (await response.json()) as GeminiResponse;
-    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return null;
-
-    const parsed = JSON.parse(text) as Partial<GeneratedCopy>;
-    if (!parsed.summary?.trim() || !parsed.pitch?.trim()) return null;
-
-    return { summary: parsed.summary.trim(), pitch: parsed.pitch.trim() };
-  } catch (error) {
-    console.error("Falha ao gerar texto na Gemini:", error);
-    return null;
   }
+
+  return null;
 }
