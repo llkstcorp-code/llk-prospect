@@ -2,6 +2,7 @@ import { validateLodgingDemos } from "../lib/validate-lodging-demo";
 import type { LodgingDemo } from "../types/lodging-demo";
 import { casaDuna } from "./casa-duna";
 import { pousadaRioTorto } from "./pousada-rio-torto";
+import { pousadaTulha } from "./pousada-tulha";
 
 /**
  * Registry das demonstrações.
@@ -17,4 +18,5 @@ import { pousadaRioTorto } from "./pousada-rio-torto";
 export const lodgingDemos: LodgingDemo[] = validateLodgingDemos([
   pousadaRioTorto,
   casaDuna,
+  pousadaTulha,
 ]);
