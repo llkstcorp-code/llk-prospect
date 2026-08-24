@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1500" width="1200" height="1500" role="presentation">
+<defs><filter id="grain" x="0" y="0" width="100%" height="100%">
+<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="7" result="n"/>
+<feColorMatrix type="saturate" values="0" in="n" result="g"/>
+<feComponentTransfer in="g"><feFuncA type="linear" slope="0.5"/></feComponentTransfer>
+</filter></defs>
+<rect width="1200" height="1500" fill="#e9ece7"/><rect x="24" y="223.66" width="146" height="930" fill="#cfd6d2" opacity="0.66"/><rect x="224" y="168.96" width="146" height="930" fill="#cfd6d2" opacity="0.6"/><rect x="424" y="226.45" width="146" height="930" fill="#cfd6d2" opacity="0.66"/><rect x="624" y="189.31" width="146" height="930" fill="#cfd6d2" opacity="0.94"/><rect x="824" y="153.02" width="146" height="930" fill="#cfd6d2" opacity="0.63"/><rect x="1024" y="237.01" width="146" height="930" fill="#cfd6d2" opacity="0.67"/><path d="M0 1500 L660 630 L1200 900 L1200 1500 Z" fill="#9fb0ad" opacity="0.65"/><rect x="0" y="1290" width="1200" height="210" fill="#7c918f"/>
+<rect width="1200" height="1500" filter="url(#grain)" opacity="0.16" style="mix-blend-mode:multiply"/>
+</svg>

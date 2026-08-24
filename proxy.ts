@@ -11,7 +11,20 @@ function unauthorized(): NextResponse {
   });
 }
 
+/**
+ * Rotas públicas.
+ *
+ * As landing pages de demonstração são feitas para ser enviadas por link a um
+ * prospect — exigir a senha do painel mataria o propósito. Tudo o mais (CRM,
+ * APIs, configurações) continua atrás do Basic Auth.
+ */
+function isPublicPath(pathname: string): boolean {
+  return pathname === "/demo" || pathname.startsWith("/demo/");
+}
+
 export function proxy(request: NextRequest): NextResponse {
+  if (isPublicPath(request.nextUrl.pathname)) return NextResponse.next();
+
   const username = process.env.APP_ACCESS_USERNAME?.trim() || "llk";
   const password = process.env.APP_ACCESS_PASSWORD;
   const isProduction = process.env.NODE_ENV === "production";
@@ -48,6 +61,11 @@ export function proxy(request: NextRequest): NextResponse {
 }
 
 export const config = {
+  /*
+   * `_next/static`, `_next/image` e os arquivos de imagem já ficam de fora do
+   * matcher, então o CSS, o JS e as ilustrações das demos carregam sem
+   * autenticação — sem isso a página pública abriria sem estilo.
+   */
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

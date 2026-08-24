@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { ToastProvider } from "@/components/common/toast";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
-import { LeadsProvider } from "@/store/leads-store";
-import { ProfileProvider } from "@/store/profile-store";
-import { ProspectingProvider } from "@/store/prospecting-store";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -63,17 +58,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="flex min-h-full flex-col bg-background">
-        <ToastProvider>
-          <TooltipProvider delayDuration={200}>
-            <ProfileProvider>
-              <ProspectingProvider>
-                <LeadsProvider>{children}</LeadsProvider>
-              </ProspectingProvider>
-            </ProfileProvider>
-          </TooltipProvider>
-        </ToastProvider>
-      </body>
+      {/*
+        Os providers do painel vivem em `app/(app)/layout.tsx`, não aqui: as
+        landing pages de `/demo` compartilham este layout raiz e não devem
+        baixar o estado do CRM só para renderizar HTML estático.
+      */}
+      <body className="flex min-h-full flex-col bg-background">{children}</body>
     </html>
   );
 }

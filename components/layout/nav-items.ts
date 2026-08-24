@@ -1,6 +1,7 @@
 import {
   Kanban,
   LayoutDashboard,
+  Presentation,
   Search,
   Settings,
   Target,
@@ -36,6 +37,12 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/leads", label: "Leads", icon: Users, match: "/leads" },
   { href: "/crm", label: "CRM", icon: Kanban, match: "/crm" },
+  {
+    href: "/demonstracoes",
+    label: "Demonstrações",
+    icon: Presentation,
+    match: "/demonstracoes",
+  },
   {
     href: "/configuracoes",
     label: "Configurações",

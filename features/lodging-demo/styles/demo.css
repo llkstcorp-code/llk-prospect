@@ -1,0 +1,105 @@
+/*
+ * Base visual das landing pages de hospedagem.
+ *
+ * Propositalmente independente dos tokens do painel: nenhuma regra aqui lê
+ * --background, --primary ou o tema claro/escuro do CRM. A página pinta a si
+ * mesma a partir das custom properties do Design DNA (`lib/theme.ts`).
+ */
+
+/*
+ * O painel alterna .dark no <html>, o que deixaria o "canvas" do navegador
+ * escuro atrás da página (visível no overscroll). As demos são superfícies
+ * claras próprias, então neutralizamos o esquema herdado.
+ */
+html:has(.lodging-demo),
+html:has(.lodging-demo) body {
+  /* !important porque o script de tema do painel escreve color-scheme inline. */
+  color-scheme: light !important;
+  background-color: canvas;
+}
+
+.lodging-demo {
+  /*
+   * O reset global do painel pinta o contorno de foco de todo elemento com
+   * `outline-color: var(--ring)`. Em vez de brigar com essa regra em cada
+   * seletor, reapontamos o token dentro da demo: o anel passa a ser o accent
+   * da pousada, não o azul do dashboard.
+   */
+  --ring: var(--demo-accent);
+  background-color: var(--demo-bg);
+  color: var(--demo-fg);
+  font-family: var(--demo-font-text), ui-sans-serif, system-ui, sans-serif;
+  font-synthesis-weight: none;
+  overscroll-behavior-y: none;
+}
+
+.lodging-demo ::selection {
+  background-color: var(--demo-accent);
+  color: var(--demo-accent-fg);
+}
+
+/*
+ * Foco visível e consistente em toda a página, inclusive sobre foto.
+ *
+ * Escrito em longhands de propósito: com o atalho `outline: 2px solid var(…)`
+ * o Chrome mantém a cor herdada do reset global do painel (`* {
+ * outline-color: var(--ring) }`), e o anel azul do dashboard não tem nada a
+ * ver com a identidade da pousada.
+ */
+.lodging-demo :focus-visible {
+  outline-width: 2px;
+  outline-style: solid;
+  outline-color: var(--demo-accent);
+  outline-offset: 3px;
+}
+
+/* Sobre foto escura o accent some; o anel vira branco pelo mesmo token. */
+.lodging-demo .on-photo {
+  --ring: #fff;
+}
+
+.demo-display {
+  font-family: var(--demo-font-display), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+/* Rótulo de seção: caixa alta pequena, o único lugar com tracking aberto. */
+.demo-eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--demo-muted);
+}
+
+.demo-prose {
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* Linha fina de separação — substitui a borda de card. */
+.demo-rule {
+  border: 0;
+  border-top: 1px solid var(--demo-rule);
+}
+
+/* Rolagem horizontal da galeria, sem barra grossa atravessando a foto. */
+.demo-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--demo-rule) transparent;
+  scroll-snap-type: x mandatory;
+}
+
+.demo-scroller > * {
+  scroll-snap-align: start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lodging-demo * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
