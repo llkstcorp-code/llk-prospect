@@ -10,15 +10,15 @@ import { getCategoryLabel } from "@/data/categories";
 import { formatCurrency } from "@/lib/format";
 import { getScoreTier, SCORE_MAX, SCORE_TIER_STYLES } from "@/lib/score";
 import { cn } from "@/lib/utils";
-import type { Business, LeadStatus } from "@/types";
+import type { Business, DealStatus } from "@/types";
 
 interface OpportunityCardProps {
   business: Business;
   serviceName: string;
-  status: LeadStatus;
+  status: DealStatus;
   isInCrm: boolean;
   isPending: boolean;
-  onAddLead: () => void;
+  onAddDeal: () => void;
 }
 
 export function OpportunityCard({
@@ -27,7 +27,7 @@ export function OpportunityCard({
   status,
   isInCrm,
   isPending,
-  onAddLead,
+  onAddDeal,
 }: OpportunityCardProps) {
   const tier = getScoreTier(business.score);
 
@@ -83,7 +83,7 @@ export function OpportunityCard({
         <Button
           size="sm"
           className="flex-1"
-          onClick={onAddLead}
+          onClick={onAddDeal}
           disabled={isInCrm || isPending}
         >
           {isPending ? (

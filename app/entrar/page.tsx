@@ -16,7 +16,7 @@ export default async function LoginPage(props: PageProps<"/entrar">) {
         <div className="flex flex-col items-center gap-3 text-center">
           <Brand />
           <p className="text-sm text-muted-foreground">
-            Entre para acessar sua carteira de leads.
+            Entre para acessar o funil comercial.
           </p>
         </div>
 

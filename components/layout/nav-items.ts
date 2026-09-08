@@ -35,7 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Target,
     match: "/oportunidades",
   },
-  { href: "/leads", label: "Leads", icon: Users, match: "/leads" },
+  { href: "/negocios", label: "Negócios", icon: Users, match: "/negocios" },
   { href: "/crm", label: "CRM", icon: Kanban, match: "/crm" },
   {
     href: "/demonstracoes",

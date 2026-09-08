@@ -9,8 +9,8 @@ import { FiltersBar } from "@/components/common/filters-bar";
 import { TableSkeleton } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useToast } from "@/components/common/toast";
-import { LeadCard } from "@/components/leads/lead-card";
-import { LeadsTable } from "@/components/leads/leads-table";
+import { DealCard } from "@/components/deals/deal-card";
+import { DealsTable } from "@/components/deals/deals-table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,22 +22,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES } from "@/data/categories";
-import { getLeadStatusConfig, LEAD_STATUSES } from "@/lib/constants";
+import { getDealStatusConfig, LEAD_STATUSES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
-import { useLeads } from "@/store/leads-store";
-import type { CategoryId, Lead, LeadStatus } from "@/types";
+import { useDeals } from "@/store/deals-store";
+import type { CategoryId, Deal, DealStatus } from "@/types";
 
 const ALL = "todos";
 
 type ScoreFilter = typeof ALL | "excelente" | "boa" | "abaixo";
 
-interface LeadFilters {
-  status: LeadStatus | typeof ALL;
+interface DealFilters {
+  status: DealStatus | typeof ALL;
   category: CategoryId | typeof ALL;
   score: ScoreFilter;
 }
 
-const DEFAULT_FILTERS: LeadFilters = {
+const DEFAULT_FILTERS: DealFilters = {
   status: ALL,
   category: ALL,
   score: ALL,
@@ -50,26 +50,26 @@ function matchesScore(score: number, filter: ScoreFilter): boolean {
   return true;
 }
 
-export default function LeadsPage() {
-  const { leads, isLoading, changeStatus } = useLeads();
+export default function DealsPage() {
+  const { deals, isLoading, changeStatus } = useDeals();
   const { toast } = useToast();
   const [search, setSearch] = React.useState("");
   const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
 
   const query = search.trim().toLocaleLowerCase("pt-BR");
-  const visible = leads.filter((lead) => {
-    if (query && !lead.businessName.toLocaleLowerCase("pt-BR").includes(query)) {
+  const visible = deals.filter((deal) => {
+    if (query && !deal.businessName.toLocaleLowerCase("pt-BR").includes(query)) {
       return false;
     }
-    if (filters.status !== ALL && lead.status !== filters.status) return false;
-    if (filters.category !== ALL && lead.category !== filters.category) {
+    if (filters.status !== ALL && deal.status !== filters.status) return false;
+    if (filters.category !== ALL && deal.category !== filters.category) {
       return false;
     }
-    return matchesScore(lead.score, filters.score);
+    return matchesScore(deal.score, filters.score);
   });
 
   const totalValue = visible.reduce(
-    (total, lead) => total + lead.estimatedValue,
+    (total, deal) => total + deal.estimatedValue,
     0
   );
 
@@ -77,12 +77,12 @@ export default function LeadsPage() {
     (value) => value !== ALL
   ).length;
 
-  async function handleStatusChange(lead: Lead, status: LeadStatus) {
+  async function handleStatusChange(deal: Deal, status: DealStatus) {
     try {
-      await changeStatus(lead.id, status);
+      await changeStatus(deal.id, status);
       toast({
         title: "Etapa atualizada",
-        description: `${lead.businessName} foi movido para ${getLeadStatusConfig(status).label}.`,
+        description: `${deal.businessName} foi movido para ${getDealStatusConfig(status).label}.`,
         variant: "success",
       });
     } catch {
@@ -90,14 +90,14 @@ export default function LeadsPage() {
     }
   }
 
-  function update<K extends keyof LeadFilters>(key: K, value: LeadFilters[K]) {
+  function update<K extends keyof DealFilters>(key: K, value: DealFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Leads"
+        title="Negócios"
         description="Todas as empresas que você adicionou à sua carteira."
         actions={
           <Button variant="outline" asChild>
@@ -106,7 +106,7 @@ export default function LeadsPage() {
         }
       />
 
-      {!isLoading && leads.length > 0 ? (
+      {!isLoading && deals.length > 0 ? (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -114,7 +114,7 @@ export default function LeadsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar por nome da empresa"
-            aria-label="Buscar leads por nome"
+            aria-label="Buscar negócios por nome"
             className="pl-8"
           />
         </div>
@@ -126,7 +126,7 @@ export default function LeadsPage() {
           <Select
             value={filters.status}
             onValueChange={(value) =>
-              update("status", value as LeadFilters["status"])
+              update("status", value as DealFilters["status"])
             }
           >
             <SelectTrigger size="sm" className="w-[9.5rem]">
@@ -145,7 +145,7 @@ export default function LeadsPage() {
           <Select
             value={filters.category}
             onValueChange={(value) =>
-              update("category", value as LeadFilters["category"])
+              update("category", value as DealFilters["category"])
             }
           >
             <SelectTrigger size="sm" className="w-[10.5rem]">
@@ -188,17 +188,17 @@ export default function LeadsPage() {
           <EmptyState
             icon={Users}
             title={
-              leads.length === 0
-                ? "Nenhum lead cadastrado"
-                : "Nenhum lead com esses filtros"
+              deals.length === 0
+                ? "Nenhum negócio cadastrado"
+                : "Nenhum negócio com esses filtros"
             }
             description={
-              leads.length === 0
+              deals.length === 0
                 ? "As empresas que você adicionar à sua prospecção aparecerão aqui."
-                : "Ajuste a busca ou os filtros para encontrar os leads que você procura."
+                : "Ajuste a busca ou os filtros para encontrar os negócios que você procura."
             }
             action={
-              leads.length === 0 ? (
+              deals.length === 0 ? (
                 <Button asChild>
                   <Link href="/empresas/buscar">Encontrar empresas</Link>
                 </Button>
@@ -219,22 +219,22 @@ export default function LeadsPage() {
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {visible.length} {visible.length === 1 ? "lead" : "leads"} ·{" "}
+            {visible.length} {visible.length === 1 ? "negócio" : "negócios"} ·{" "}
             {formatCurrency(totalValue)} em potencial
           </p>
 
           <Card className="hidden [--card-spacing:0px] lg:block">
-            <LeadsTable
-              leads={visible}
-              onStatusChange={(lead, status) =>
-                void handleStatusChange(lead, status)
+            <DealsTable
+              deals={visible}
+              onStatusChange={(deal, status) =>
+                void handleStatusChange(deal, status)
               }
             />
           </Card>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
-            {visible.map((lead) => (
-              <LeadCard key={lead.id} lead={lead} />
+            {visible.map((deal) => (
+              <DealCard key={deal.id} deal={deal} />
             ))}
           </div>
         </>

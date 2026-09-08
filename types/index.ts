@@ -71,7 +71,7 @@ export interface Business {
   problem: string;
   recommendedServiceId: string;
   estimatedValue: number;
-  status: LeadStatus | null;
+  status: DealStatus | null;
   /** ISO date — usado na ordenação por "mais recentes". */
   foundAt: string;
   /** Verdadeiro depois que a empresa fecha o primeiro negócio. */
@@ -109,7 +109,7 @@ export interface ScoreTier {
   max: number;
 }
 
-export type LeadStatus =
+export type DealStatus =
   | "novo"
   | "contatado"
   | "respondeu"
@@ -118,8 +118,8 @@ export type LeadStatus =
   | "fechado"
   | "perdido";
 
-export interface LeadStatusConfig {
-  id: LeadStatus;
+export interface DealStatusConfig {
+  id: DealStatus;
   label: string;
   description: string;
 }
@@ -144,17 +144,19 @@ export interface TimelineEvent {
   date: string;
 }
 
-export interface LeadNote {
+export interface DealNote {
   id: string;
   content: string;
   /** ISO date. */
   createdAt: string;
 }
 
-export interface Lead {
+export interface Deal {
   id: string;
   businessId: string;
   businessName: string;
+  /** Como a equipe chama este negócio — distingue dois da mesma empresa. */
+  title: string;
   category: CategoryId;
   city: string;
   state: string;
@@ -163,13 +165,27 @@ export interface Lead {
   serviceId: string;
   serviceName: string;
   estimatedValue: number;
-  status: LeadStatus;
+  status: DealStatus;
   /** ISO date. */
   createdAt: string;
   /** ISO date ou null quando ainda não houve contato. */
   lastContactAt: string | null;
+  /** ISO date do fechamento ou da perda; null enquanto o negócio está aberto. */
+  closedAt: string | null;
+  lostReason: string | null;
+  /** Contato desta negociação. Pode diferir do principal da empresa. */
+  contactId: string | null;
+  contactName: string | null;
   timeline: TimelineEvent[];
-  notes: LeadNote[];
+  notes: DealNote[];
+}
+
+/** O que a interface envia para abrir um negócio. */
+export interface DealInput {
+  businessId: string;
+  title: string;
+  serviceId: string;
+  contactId: string | null;
 }
 
 export type IndicatorLevel = "alto" | "medio" | "baixo";

@@ -1,7 +1,7 @@
 import { ToastProvider } from "@/components/common/toast";
 import { AppShell } from "@/components/layout/app-shell";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LeadsProvider } from "@/store/leads-store";
+import { DealsProvider } from "@/store/deals-store";
 import { ProfileProvider } from "@/store/profile-store";
 import { ProspectingProvider } from "@/store/prospecting-store";
 import { ServicesProvider } from "@/store/services-store";
@@ -18,9 +18,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <ProfileProvider>
           <ServicesProvider>
             <ProspectingProvider>
-              <LeadsProvider>
+              <DealsProvider>
                 <AppShell>{children}</AppShell>
-              </LeadsProvider>
+              </DealsProvider>
             </ProspectingProvider>
           </ServicesProvider>
         </ProfileProvider>

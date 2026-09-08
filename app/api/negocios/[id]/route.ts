@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 
 import { guardSession } from "@/lib/auth/session";
 import {
-  addStoredLeadNote,
-  getStoredLead,
-  registerStoredLeadContact,
-  updateStoredLeadStatus,
-} from "@/services/repositories/leads-repository";
-import type { LeadStatus } from "@/types";
+  addStoredDealNote,
+  getStoredDeal,
+  registerStoredDealContact,
+  updateStoredDealStatus,
+} from "@/services/repositories/deals-repository";
+import type { DealStatus } from "@/types";
 
-const VALID_STATUSES: LeadStatus[] = [
+const VALID_STATUSES: DealStatus[] = [
   "novo",
   "contatado",
   "respondeu",
@@ -19,14 +19,14 @@ const VALID_STATUSES: LeadStatus[] = [
   "perdido",
 ];
 
-interface UpdateLeadBody {
-  status?: LeadStatus;
+interface UpdateDealBody {
+  status?: DealStatus;
   note?: string;
   registerContact?: boolean;
 }
 
-function isLeadStatus(value: unknown): value is LeadStatus {
-  return VALID_STATUSES.includes(value as LeadStatus);
+function isDealStatus(value: unknown): value is DealStatus {
+  return VALID_STATUSES.includes(value as DealStatus);
 }
 
 export async function GET(
@@ -38,18 +38,18 @@ export async function GET(
   if (denied) return denied;
 
   try {
-    const lead = await getStoredLead(id);
-    if (!lead) {
+    const deal = await getStoredDeal(id);
+    if (!deal) {
       return NextResponse.json(
-        { error: "Lead não encontrado." },
+        { error: "Deal não encontrado." },
         { status: 404 }
       );
     }
-    return NextResponse.json(lead);
+    return NextResponse.json(deal);
   } catch (error) {
-    console.error(`Falha ao carregar lead ${id}:`, error);
+    console.error(`Falha ao carregar deal ${id}:`, error);
     return NextResponse.json(
-      { error: "Não foi possível carregar o lead." },
+      { error: "Não foi possível carregar o negócio." },
       { status: 500 }
     );
   }
@@ -63,9 +63,9 @@ export async function PATCH(
   const denied = await guardSession();
   if (denied) return denied;
 
-  let body: UpdateLeadBody;
+  let body: UpdateDealBody;
   try {
-    body = (await request.json()) as UpdateLeadBody;
+    body = (await request.json()) as UpdateDealBody;
   } catch {
     return NextResponse.json(
       { error: "Corpo da requisição inválido." },
@@ -75,22 +75,22 @@ export async function PATCH(
 
   try {
     if (body.registerContact) {
-      return NextResponse.json(await registerStoredLeadContact(id));
+      return NextResponse.json(await registerStoredDealContact(id));
     }
     if (typeof body.note === "string" && body.note.trim()) {
-      return NextResponse.json(await addStoredLeadNote(id, body.note.trim()));
+      return NextResponse.json(await addStoredDealNote(id, body.note.trim()));
     }
-    if (isLeadStatus(body.status)) {
-      return NextResponse.json(await updateStoredLeadStatus(id, body.status));
+    if (isDealStatus(body.status)) {
+      return NextResponse.json(await updateStoredDealStatus(id, body.status));
     }
     return NextResponse.json(
       { error: "Nenhuma alteração válida foi informada." },
       { status: 400 }
     );
   } catch (error) {
-    console.error(`Falha ao atualizar lead ${id}:`, error);
+    console.error(`Falha ao atualizar deal ${id}:`, error);
     return NextResponse.json(
-      { error: "Não foi possível atualizar o lead." },
+      { error: "Não foi possível atualizar o negócio." },
       { status: 500 }
     );
   }

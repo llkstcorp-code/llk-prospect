@@ -16,18 +16,18 @@ import { LEAD_STATUSES } from "@/lib/constants";
 import { formatCurrency, formatRelativeDate } from "@/lib/format";
 import { getScoreTier, SCORE_TIER_STYLES } from "@/lib/score";
 import { cn } from "@/lib/utils";
-import type { Lead, LeadStatus } from "@/types";
+import type { Deal, DealStatus } from "@/types";
 
 interface KanbanCardProps {
-  lead: Lead;
+  deal: Deal;
   isDragging: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
-  onStatusChange: (status: LeadStatus) => void;
+  onStatusChange: (status: DealStatus) => void;
 }
 
 export function KanbanCard({
-  lead,
+  deal,
   isDragging,
   onDragStart,
   onDragEnd,
@@ -38,7 +38,7 @@ export function KanbanCard({
       draggable
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", lead.id);
+        event.dataTransfer.setData("text/plain", deal.id);
         onDragStart();
       }}
       onDragEnd={onDragEnd}
@@ -48,12 +48,17 @@ export function KanbanCard({
       )}
     >
       <div className="flex items-start justify-between gap-1.5">
-        <Link
-          href={`/leads/${lead.id}`}
-          className="min-w-0 text-sm font-medium hover:underline"
-        >
-          {lead.businessName}
-        </Link>
+        <div className="min-w-0">
+          <Link
+            href={`/negocios/${deal.id}`}
+            className="block truncate text-sm font-medium hover:underline"
+          >
+            {deal.title}
+          </Link>
+          <p className="truncate text-xs text-muted-foreground">
+            {deal.businessName}
+          </p>
+        </div>
         <div className="flex shrink-0 items-center">
           <GripVertical
             aria-hidden
@@ -61,7 +66,7 @@ export function KanbanCard({
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs" aria-label="Mover lead">
+              <Button variant="ghost" size="icon-xs" aria-label="Mover negócio">
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
@@ -71,7 +76,7 @@ export function KanbanCard({
               {LEAD_STATUSES.map((status) => (
                 <DropdownMenuItem
                   key={status.id}
-                  disabled={status.id === lead.status}
+                  disabled={status.id === deal.status}
                   onSelect={() => onStatusChange(status.id)}
                 >
                   {status.label}
@@ -86,20 +91,20 @@ export function KanbanCard({
         <span
           className={cn(
             "font-medium tabular-nums",
-            SCORE_TIER_STYLES[getScoreTier(lead.score).id].text
+            SCORE_TIER_STYLES[getScoreTier(deal.score).id].text
           )}
         >
-          Score {lead.score}
+          Score {deal.score}
         </span>
-        · {lead.serviceName}
+        · {deal.serviceName}
       </p>
 
       <p className="mt-2.5 font-medium tabular-nums">
-        {formatCurrency(lead.estimatedValue)}
+        {formatCurrency(deal.estimatedValue)}
       </p>
 
       <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
-        Último contato: {formatRelativeDate(lead.lastContactAt)}
+        Último contato: {formatRelativeDate(deal.lastContactAt)}
       </p>
     </article>
   );

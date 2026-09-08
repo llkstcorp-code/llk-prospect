@@ -21,10 +21,10 @@ import {
 import { CATEGORIES, getCategoryLabel } from "@/data/categories";
 import { LEAD_STATUSES } from "@/lib/constants";
 import { getServiceName } from "@/lib/service-catalog";
-import { useLeads } from "@/store/leads-store";
+import { useDeals } from "@/store/deals-store";
 import { useProspecting } from "@/store/prospecting-store";
 import { useServices } from "@/store/services-store";
-import type { Business, CategoryId, LeadStatus, ScoreTierId } from "@/types";
+import type { Business, CategoryId, DealStatus, ScoreTierId } from "@/types";
 
 const ALL = "todos";
 
@@ -33,7 +33,7 @@ interface OpportunityFilters {
   category: CategoryId | typeof ALL;
   city: string;
   serviceId: string;
-  status: LeadStatus | typeof ALL;
+  status: DealStatus | typeof ALL;
 }
 
 const DEFAULT_FILTERS: OpportunityFilters = {
@@ -46,7 +46,7 @@ const DEFAULT_FILTERS: OpportunityFilters = {
 
 export default function OpportunitiesPage() {
   const { toast } = useToast();
-  const { findByBusinessId, addLead } = useLeads();
+  const { openDealOfBusiness, addDeal } = useDeals();
   const { businesses: discoveredBusinesses } = useProspecting();
   const { catalog } = useServices();
   const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
@@ -62,8 +62,10 @@ export default function OpportunitiesPage() {
     [businesses]
   );
 
-  function getStatus(business: Business): LeadStatus {
-    return findByBusinessId(business.id)?.status ?? "novo";
+  // O status mostrado é o do negócio aberto. Sem negócio aberto, a empresa é
+  // uma oportunidade nova de novo — mesmo tendo fechado algo no passado.
+  function getStatus(business: Business): DealStatus {
+    return openDealOfBusiness(business.id)?.status ?? "novo";
   }
 
   const visible = businesses.filter((business) => {
@@ -92,18 +94,23 @@ export default function OpportunitiesPage() {
     (value) => value !== ALL
   ).length;
 
-  async function handleAddLead(business: Business) {
+  async function handleAddDeal(business: Business) {
     setPendingId(business.id);
     try {
-      await addLead(business.id);
+      await addDeal({
+        businessId: business.id,
+        title: "",
+        serviceId: business.recommendedServiceId,
+        contactId: null,
+      });
       toast({
-        title: "Oportunidade adicionada aos leads",
+        title: "Oportunidade adicionada ao funil",
         description: `${business.name} está na etapa Novo do seu CRM.`,
         variant: "success",
       });
     } catch {
       toast({
-        title: "Não foi possível adicionar o lead",
+        title: "Não foi possível abrir o negócio",
         variant: "error",
       });
     } finally {
@@ -270,9 +277,9 @@ export default function OpportunitiesPage() {
                   business.recommendedServiceId
                 )}
                 status={getStatus(business)}
-                isInCrm={Boolean(findByBusinessId(business.id))}
+                isInCrm={Boolean(openDealOfBusiness(business.id))}
                 isPending={pendingId === business.id}
-                onAddLead={() => void handleAddLead(business)}
+                onAddDeal={() => void handleAddDeal(business)}
               />
             ))}
           </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { AddLeadButton } from "@/components/business/add-lead-button";
+import { AddDealButton } from "@/components/business/add-deal-button";
 import {
   PresenceIndicator,
   RatingInline,
@@ -91,7 +91,7 @@ export function BusinessTable({ businesses }: BusinessTableProps) {
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/empresas/${business.id}`}>Analisar</Link>
                 </Button>
-                <AddLeadButton business={business} />
+                <AddDealButton business={business} />
               </div>
             </TableCell>
           </TableRow>

@@ -6,12 +6,12 @@ const VIEWBOX_HEIGHT = 220;
 const PADDING = { top: 16, right: 8, bottom: 26, left: 30 };
 const GRID_LINES = 4;
 
-interface LeadsChartProps {
+interface DealsChartProps {
   data: ChartPoint[];
 }
 
-/** Série diária de leads encontrados, desenhada em SVG puro. */
-export function LeadsChart({ data }: LeadsChartProps) {
+/** Série diária de negócios abertos, desenhada em SVG puro. */
+export function DealsChart({ data }: DealsChartProps) {
   if (data.length < 2) return null;
 
   const innerWidth = VIEWBOX_WIDTH - PADDING.left - PADDING.right;
@@ -43,7 +43,7 @@ export function LeadsChart({ data }: LeadsChartProps) {
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
       className="w-full"
       role="img"
-      aria-label="Leads encontrados nos últimos 30 dias"
+      aria-label="Negócios abertos nos últimos 30 dias"
     >
       {Array.from({ length: GRID_LINES + 1 }, (_, index) => {
         const value = (scaleMax / GRID_LINES) * index;
@@ -112,7 +112,7 @@ export function LeadsChart({ data }: LeadsChartProps) {
           fill="transparent"
           className="hover:fill-foreground/4"
         >
-          <title>{`${formatShortDate(point.date)} · ${point.value} leads`}</title>
+          <title>{`${formatShortDate(point.date)} · ${point.value} deals`}</title>
         </rect>
       ))}
     </svg>

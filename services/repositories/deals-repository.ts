@@ -1,33 +1,41 @@
 import "server-only";
 
 import { requireUser } from "@/lib/auth/session";
-import { getLeadStatusConfig } from "@/lib/constants";
+import { getDealStatusConfig } from "@/lib/constants";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   Business,
-  Lead,
-  LeadNote,
-  LeadStatus,
+  DealInput,
+  Deal,
+  DealNote,
+  DealStatus,
   TimelineEvent,
   TimelineEventType,
 } from "@/types";
 import { getStoredBusiness } from "./businesses-repository";
 import { getStoredService } from "./services-repository";
 
-interface LeadRow {
+interface DealRow {
   id: string;
   business_id: string;
+  title: string;
   service_id: string | null;
   service_name: string;
   estimated_value: number | string;
-  status: LeadStatus;
+  status: DealStatus;
   created_at: string;
   last_contact_at: string | null;
+  closed_at: string | null;
+  lost_reason: string | null;
+  contact_id: string | null;
 }
+
+/** Status a partir dos quais o negócio deixa de estar em aberto. */
+const CLOSED_STATUSES: DealStatus[] = ["fechado", "perdido"];
 
 interface EventRow {
   id: string;
-  lead_id: string;
+  deal_id: string;
   type: TimelineEventType;
   title: string;
   description: string | null;
@@ -36,12 +44,12 @@ interface EventRow {
 
 interface NoteRow {
   id: string;
-  lead_id: string;
+  deal_id: string;
   content: string;
   created_at: string;
 }
 
-const STATUS_EVENT_TYPE: Record<LeadStatus, TimelineEventType> = {
+const STATUS_EVENT_TYPE: Record<DealStatus, TimelineEventType> = {
   novo: "created",
   contatado: "contact",
   respondeu: "reply",
@@ -51,7 +59,7 @@ const STATUS_EVENT_TYPE: Record<LeadStatus, TimelineEventType> = {
   perdido: "lost",
 };
 
-const CONTACT_STATUSES: LeadStatus[] = [
+const CONTACT_STATUSES: DealStatus[] = [
   "contatado",
   "respondeu",
   "reuniao",
@@ -69,7 +77,7 @@ function mapEvent(row: EventRow): TimelineEvent {
   };
 }
 
-function mapNote(row: NoteRow): LeadNote {
+function mapNote(row: NoteRow): DealNote {
   return {
     id: row.id,
     content: row.content,
@@ -77,16 +85,18 @@ function mapNote(row: NoteRow): LeadNote {
   };
 }
 
-function mapLead(
-  row: LeadRow,
+function mapDeal(
+  row: DealRow,
   business: Business,
   events: EventRow[],
-  notes: NoteRow[]
-): Lead {
+  notes: NoteRow[],
+  contactNames: Map<string, string>
+): Deal {
   return {
     id: row.id,
     businessId: row.business_id,
     businessName: business.name,
+    title: row.title || row.service_name,
     category: business.category,
     city: business.city,
     state: business.state,
@@ -98,36 +108,50 @@ function mapLead(
     status: row.status,
     createdAt: row.created_at,
     lastContactAt: row.last_contact_at,
+    closedAt: row.closed_at,
+    lostReason: row.lost_reason,
+    contactId: row.contact_id,
+    contactName: row.contact_id
+      ? (contactNames.get(row.contact_id) ?? null)
+      : null,
     timeline: events.map(mapEvent),
     notes: notes.map(mapNote),
   };
 }
 
-async function loadLeadRelations(rows: LeadRow[]): Promise<Lead[]> {
+async function loadDealRelations(rows: DealRow[]): Promise<Deal[]> {
   if (rows.length === 0) return [];
 
   const supabase = await getSupabaseServerClient();
   const businessIds = [...new Set(rows.map((row) => row.business_id))];
-  const leadIds = rows.map((row) => row.id);
+  const dealIds = rows.map((row) => row.id);
 
-  const [businessesResult, eventsResult, notesResult] = await Promise.all([
-    supabase.from("businesses").select("*").in("id", businessIds),
-    supabase
-      .from("lead_events")
-      .select("*")
-      .in("lead_id", leadIds)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("lead_notes")
-      .select("*")
-      .in("lead_id", leadIds)
-      .order("created_at", { ascending: false }),
-  ]);
+  const contactIds = [
+    ...new Set(rows.map((row) => row.contact_id).filter(Boolean)),
+  ] as string[];
+
+  const [businessesResult, eventsResult, notesResult, contactsResult] =
+    await Promise.all([
+      supabase.from("businesses").select("*").in("id", businessIds),
+      supabase
+        .from("deal_events")
+        .select("*")
+        .in("deal_id", dealIds)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("deal_notes")
+        .select("*")
+        .in("deal_id", dealIds)
+        .order("created_at", { ascending: false }),
+      contactIds.length > 0
+        ? supabase.from("contacts").select("id, name").in("id", contactIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   const relationError =
     businessesResult.error ?? eventsResult.error ?? notesResult.error;
   if (relationError) {
-    throw new Error(`Falha ao carregar dados dos leads: ${relationError.message}`);
+    throw new Error(`Falha ao carregar dados dos deals: ${relationError.message}`);
   }
 
   const businesses = new Map(
@@ -166,95 +190,106 @@ async function loadLeadRelations(rows: LeadRow[]): Promise<Lead[]> {
   );
   const events = (eventsResult.data ?? []) as EventRow[];
   const notes = (notesResult.data ?? []) as NoteRow[];
+  const contactNames = new Map(
+    ((contactsResult.data ?? []) as Array<{ id: string; name: string }>).map(
+      (contact) => [contact.id, contact.name] as const
+    )
+  );
 
   return rows.flatMap((row) => {
     const business = businesses.get(row.business_id);
     if (!business) {
-      // Some da lista para não quebrar as outras, mas deixa rastro: um lead que
+      // Some da lista para não quebrar as outras, mas deixa rastro: um deal que
       // desaparece em silêncio é o tipo de falha que se investiga às cegas.
       console.warn(
-        `Lead ${row.id} ignorado: empresa ${row.business_id} não foi encontrada.`
+        `Deal ${row.id} ignorado: empresa ${row.business_id} não foi encontrada.`
       );
       return [];
     }
     return [
-      mapLead(
+      mapDeal(
         row,
         business,
-        events.filter((event) => event.lead_id === row.id),
-        notes.filter((note) => note.lead_id === row.id)
+        events.filter((event) => event.deal_id === row.id),
+        notes.filter((note) => note.deal_id === row.id),
+        contactNames
       ),
     ];
   });
 }
 
-export async function listStoredLeads(): Promise<Lead[]> {
+export async function listStoredDeals(): Promise<Deal[]> {
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
-    .from("leads")
+    .from("deals")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(`Falha ao listar leads: ${error.message}`);
-  return loadLeadRelations((data ?? []) as LeadRow[]);
+  if (error) throw new Error(`Falha ao listar negócios: ${error.message}`);
+  return loadDealRelations((data ?? []) as DealRow[]);
 }
 
-export async function getStoredLead(id: string): Promise<Lead | null> {
+export async function getStoredDeal(id: string): Promise<Deal | null> {
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
-    .from("leads")
+    .from("deals")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw new Error(`Falha ao carregar lead: ${error.message}`);
+  if (error) throw new Error(`Falha ao carregar deal: ${error.message}`);
   if (!data) return null;
 
-  const [lead] = await loadLeadRelations([data as LeadRow]);
-  return lead ?? null;
+  const [deal] = await loadDealRelations([data as DealRow]);
+  return deal ?? null;
 }
 
-export async function getStoredLeadByBusinessId(
+export async function getStoredDealsByBusinessId(
   businessId: string
-): Promise<Lead | null> {
+): Promise<Deal[]> {
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
-    .from("leads")
+    .from("deals")
     .select("*")
     .eq("business_id", businessId)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  if (error) throw new Error(`Falha ao localizar lead: ${error.message}`);
-  if (!data) return null;
-
-  const [lead] = await loadLeadRelations([data as LeadRow]);
-  return lead ?? null;
+  if (error) throw new Error(`Falha ao localizar negócios: ${error.message}`);
+  return loadDealRelations((data ?? []) as DealRow[]);
 }
 
-export async function createStoredLead(businessId: string): Promise<Lead> {
+/**
+ * Abre um negócio para uma empresa.
+ *
+ * Uma empresa pode ter vários: renovação, upsell, um segundo projeto. O que
+ * distingue um do outro é o título, e por isso ele não é opcional — sem título,
+ * dois cards da mesma empresa ficam indistinguíveis no Kanban.
+ */
+export async function createStoredDeal(input: DealInput): Promise<Deal> {
   const user = await requireUser();
-  const existing = await getStoredLeadByBusinessId(businessId);
-  if (existing) return existing;
 
-  const business = await getStoredBusiness(businessId);
-  if (!business) throw new Error(`Empresa ${businessId} não encontrada.`);
+  const business = await getStoredBusiness(input.businessId);
+  if (!business) {
+    throw new Error(`Empresa ${input.businessId} não encontrada.`);
+  }
 
-  const service = await getStoredService(business.recommendedServiceId);
+  const serviceId = input.serviceId || business.recommendedServiceId;
+  const service = await getStoredService(serviceId);
   if (!service) {
-    throw new Error(
-      `Serviço recomendado ${business.recommendedServiceId} não existe no catálogo.`
-    );
+    throw new Error(`Serviço ${serviceId} não existe no catálogo.`);
   }
 
   const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
   const { data, error } = await supabase
-    .from("leads")
+    .from("deals")
     .insert({
       owner_id: user.id,
       business_id: business.id,
+      title: input.title.trim() || service.name,
       service_id: service.id,
       service_name: service.name,
+      contact_id: input.contactId,
       estimated_value: business.estimatedValue || service.price,
       status: "novo",
       created_at: now,
@@ -263,25 +298,19 @@ export async function createStoredLead(businessId: string): Promise<Lead> {
     .select("*")
     .single();
 
-  if (error) {
-    if (error.code === "23505") {
-      const duplicate = await getStoredLeadByBusinessId(businessId);
-      if (duplicate) return duplicate;
-    }
-    throw new Error(`Falha ao criar lead: ${error.message}`);
-  }
+  if (error) throw new Error(`Falha ao criar negócio: ${error.message}`);
 
-  const row = data as LeadRow;
-  const { error: eventError } = await supabase.from("lead_events").insert([
+  const row = data as DealRow;
+  const { error: eventError } = await supabase.from("deal_events").insert([
     {
-      lead_id: row.id,
+      deal_id: row.id,
       type: "created",
-      title: "Lead criado",
-      description: `${business.name} foi adicionada à sua carteira.`,
+      title: "Negócio aberto",
+      description: `${row.title} — ${business.name}.`,
       created_at: now,
     },
     {
-      lead_id: row.id,
+      deal_id: row.id,
       type: "analysis",
       title: "Análise realizada",
       description: `Score ${business.score} — ${business.problem.toLocaleLowerCase("pt-BR")}.`,
@@ -290,67 +319,72 @@ export async function createStoredLead(businessId: string): Promise<Lead> {
   ]);
 
   if (eventError) {
-    await supabase.from("leads").delete().eq("id", row.id);
+    await supabase.from("deals").delete().eq("id", row.id);
     throw new Error(`Falha ao criar histórico: ${eventError.message}`);
   }
 
-  const lead = await getStoredLead(row.id);
-  if (!lead) throw new Error("O lead criado não pôde ser carregado.");
-  return lead;
+  const deal = await getStoredDeal(row.id);
+  if (!deal) throw new Error("O negócio criado não pôde ser carregado.");
+  return deal;
 }
 
-export async function updateStoredLeadStatus(
+export async function updateStoredDealStatus(
   id: string,
-  status: LeadStatus
-): Promise<Lead> {
-  const current = await getStoredLead(id);
-  if (!current) throw new Error(`Lead ${id} não encontrado.`);
+  status: DealStatus
+): Promise<Deal> {
+  const current = await getStoredDeal(id);
+  if (!current) throw new Error(`Negócio ${id} não encontrado.`);
   if (current.status === status) return current;
 
   const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
-  const update: Record<string, string> = {
+  const update: Record<string, string | null> = {
     status,
     updated_at: now,
   };
   if (CONTACT_STATUSES.includes(status)) update.last_contact_at = now;
 
-  const { error } = await supabase.from("leads").update(update).eq("id", id);
-  if (error) throw new Error(`Falha ao atualizar lead: ${error.message}`);
+  // `closed_at` é o que permite medir ciclo de venda. Reabrir um negócio limpa
+  // a data, senão o relatório contaria um fechamento que não aconteceu.
+  update.closed_at = CLOSED_STATUSES.includes(status) ? now : null;
+  if (status !== "perdido") update.lost_reason = null;
 
-  const { error: eventError } = await supabase.from("lead_events").insert({
-    lead_id: id,
+  const { error } = await supabase.from("deals").update(update).eq("id", id);
+  if (error) throw new Error(`Falha ao atualizar negócio: ${error.message}`);
+
+  const { error: eventError } = await supabase.from("deal_events").insert({
+    deal_id: id,
     type: STATUS_EVENT_TYPE[status],
-    title: `Status alterado para ${getLeadStatusConfig(status).label}`,
+    title: `Status alterado para ${getDealStatusConfig(status).label}`,
     created_at: now,
   });
   if (eventError) {
     throw new Error(`Falha ao registrar histórico: ${eventError.message}`);
   }
 
-  const lead = await getStoredLead(id);
-  if (!lead) throw new Error("O lead atualizado não pôde ser carregado.");
-  return lead;
+  const deal = await getStoredDeal(id);
+  if (!deal) throw new Error("O negócio atualizado não pôde ser carregado.");
+  return deal;
 }
 
-export async function addStoredLeadNote(
+export async function addStoredDealNote(
   id: string,
   content: string
-): Promise<Lead> {
-  const current = await getStoredLead(id);
-  if (!current) throw new Error(`Lead ${id} não encontrado.`);
+): Promise<Deal> {
+  const current = await getStoredDeal(id);
+  if (!current) throw new Error(`Deal ${id} não encontrado.`);
 
   const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
-  const { error } = await supabase.from("lead_notes").insert({
-    lead_id: id,
+  const { error } = await supabase.from("deal_notes").insert({
+    deal_id: id,
     content,
     created_at: now,
   });
   if (error) throw new Error(`Falha ao salvar observação: ${error.message}`);
 
-  const { error: eventError } = await supabase.from("lead_events").insert({
-    lead_id: id,
+  const { error: eventError } = await supabase.from("deal_events").insert({
+    deal_id: id,
     type: "note",
     title: "Observação adicionada",
     created_at: now,
@@ -359,14 +393,14 @@ export async function addStoredLeadNote(
     throw new Error(`Falha ao registrar histórico: ${eventError.message}`);
   }
 
-  const lead = await getStoredLead(id);
-  if (!lead) throw new Error("O lead atualizado não pôde ser carregado.");
-  return lead;
+  const deal = await getStoredDeal(id);
+  if (!deal) throw new Error("O negócio atualizado não pôde ser carregado.");
+  return deal;
 }
 
-export async function registerStoredLeadContact(id: string): Promise<Lead> {
-  const current = await getStoredLead(id);
-  if (!current) throw new Error(`Lead ${id} não encontrado.`);
+export async function registerStoredDealContact(id: string): Promise<Deal> {
+  const current = await getStoredDeal(id);
+  if (!current) throw new Error(`Deal ${id} não encontrado.`);
 
   const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
@@ -376,11 +410,11 @@ export async function registerStoredLeadContact(id: string): Promise<Lead> {
   };
   if (current.status === "novo") update.status = "contatado";
 
-  const { error } = await supabase.from("leads").update(update).eq("id", id);
+  const { error } = await supabase.from("deals").update(update).eq("id", id);
   if (error) throw new Error(`Falha ao registrar contato: ${error.message}`);
 
-  const { error: eventError } = await supabase.from("lead_events").insert({
-    lead_id: id,
+  const { error: eventError } = await supabase.from("deal_events").insert({
+    deal_id: id,
     type: "contact",
     title: "Contato registrado",
     description: "Mensagem de abordagem enviada.",
@@ -390,7 +424,7 @@ export async function registerStoredLeadContact(id: string): Promise<Lead> {
     throw new Error(`Falha ao registrar histórico: ${eventError.message}`);
   }
 
-  const lead = await getStoredLead(id);
-  if (!lead) throw new Error("O lead atualizado não pôde ser carregado.");
-  return lead;
+  const deal = await getStoredDeal(id);
+  if (!deal) throw new Error("O negócio atualizado não pôde ser carregado.");
+  return deal;
 }

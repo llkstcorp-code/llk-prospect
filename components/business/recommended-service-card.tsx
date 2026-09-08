@@ -16,7 +16,7 @@ import type { ServiceOffering } from "@/types";
 interface RecommendedServiceCardProps {
   service: ServiceOffering;
   reasons: string[];
-  /** O lead já existe no CRM. */
+  /** A empresa já tem negócio aberto. */
   isInCrm: boolean;
   isPending: boolean;
   onAddToCrm: () => void;

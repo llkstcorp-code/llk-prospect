@@ -84,7 +84,7 @@ export function ServicesSection({ services, onChange }: ServicesSectionProps) {
       <CardHeader>
         <CardTitle>Serviços</CardTitle>
         <CardDescription>
-          Catálogo usado nas recomendações e no valor estimado de cada lead.
+          Catálogo usado nas recomendações e no valor estimado de cada deal.
         </CardDescription>
         <CardAction>
           <Button size="sm" onClick={() => openDialog()}>
@@ -168,7 +168,7 @@ export function ServicesSection({ services, onChange }: ServicesSectionProps) {
           if (!open) setPendingRemoval(undefined);
         }}
         title={`Remover ${pendingRemoval?.name ?? "serviço"}?`}
-        description="O serviço deixa de aparecer nas recomendações. Os leads já criados mantêm o valor registrado."
+        description="O serviço deixa de aparecer nas recomendações. Os negócios já criados mantêm o valor registrado."
         confirmLabel="Remover"
         variant="destructive"
         onConfirm={handleDelete}

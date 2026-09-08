@@ -14,7 +14,7 @@ import { DetailSkeleton } from "@/components/common/loading-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Timeline } from "@/components/common/timeline";
 import { useToast } from "@/components/common/toast";
-import { LeadNotes } from "@/components/leads/lead-notes";
+import { DealNotes } from "@/components/deals/deal-notes";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getCategoryLabel } from "@/data/categories";
-import { getLeadStatusConfig, LEAD_STATUSES } from "@/lib/constants";
+import { getDealStatusConfig, LEAD_STATUSES } from "@/lib/constants";
 import {
   formatCurrency,
   formatLongDate,
@@ -39,11 +39,11 @@ import {
 import { getScoreTier, SCORE_MAX, SCORE_TIER_STYLES } from "@/lib/score";
 import { cn } from "@/lib/utils";
 import { getBusiness } from "@/services/businesses";
-import { useLeads } from "@/store/leads-store";
-import type { Business, LeadStatus } from "@/types";
+import { useDeals } from "@/store/deals-store";
+import type { Business, DealStatus } from "@/types";
 
-interface LeadDetailProps {
-  leadId: string;
+interface DealDetailProps {
+  dealId: string;
 }
 
 function SummaryRow({
@@ -61,14 +61,14 @@ function SummaryRow({
   );
 }
 
-export function LeadDetail({ leadId }: LeadDetailProps) {
+export function DealDetail({ dealId }: DealDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { leads, isLoading, changeStatus, addNote } = useLeads();
+  const { deals, isLoading, changeStatus, addNote } = useDeals();
   const [business, setBusiness] = React.useState<Business | null>(null);
 
-  const lead = leads.find((item) => item.id === leadId);
-  const businessId = lead?.businessId;
+  const deal = deals.find((item) => item.id === dealId);
+  const businessId = deal?.businessId;
 
   React.useEffect(() => {
     if (!businessId) return;
@@ -85,16 +85,16 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
     return <DetailSkeleton />;
   }
 
-  if (!lead) {
+  if (!deal) {
     return (
       <Card>
         <EmptyState
           icon={Building2}
-          title="Lead não encontrado"
-          description="Esse lead não está mais na sua carteira."
+          title="Deal não encontrado"
+          description="Esse negócio não está mais no funil."
           action={
             <Button variant="outline" asChild>
-              <Link href="/leads">Voltar para os leads</Link>
+              <Link href="/negocios">Voltar para os negócios</Link>
             </Button>
           }
         />
@@ -102,13 +102,13 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
     );
   }
 
-  async function handleStatusChange(status: LeadStatus) {
-    if (!lead) return;
+  async function handleStatusChange(status: DealStatus) {
+    if (!deal) return;
     try {
-      await changeStatus(lead.id, status);
+      await changeStatus(deal.id, status);
       toast({
         title: "Etapa atualizada",
-        description: `${lead.businessName} foi movido para ${getLeadStatusConfig(status).label}.`,
+        description: `${deal.title} foi movido para ${getDealStatusConfig(status).label}.`,
         variant: "success",
       });
     } catch {
@@ -117,9 +117,9 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
   }
 
   async function handleAddNote(content: string) {
-    if (!lead) return;
+    if (!deal) return;
     try {
-      await addNote(lead.id, content);
+      await addNote(deal.id, content);
       toast({ title: "Observação adicionada", variant: "success" });
     } catch {
       toast({
@@ -129,7 +129,7 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
     }
   }
 
-  const tier = getScoreTier(lead.score);
+  const tier = getScoreTier(deal.score);
 
   return (
     <div className="space-y-6">
@@ -138,19 +138,26 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="font-heading text-2xl font-medium tracking-tight text-balance">
-                {lead.businessName}
+                {deal.title}
               </h1>
-              <StatusBadge status={lead.status} />
+              <StatusBadge status={deal.status} />
             </div>
             <p className="text-sm text-muted-foreground">
-              {getCategoryLabel(lead.category)} · {lead.city}, {lead.state} ·
-              Lead criado em {formatLongDate(lead.createdAt)}
+              {deal.businessName} · {getCategoryLabel(deal.category)} ·{" "}
+              {deal.city}, {deal.state}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Aberto em {formatLongDate(deal.createdAt)}
+              {deal.closedAt
+                ? ` · encerrado em ${formatLongDate(deal.closedAt)}`
+                : ""}
+              {deal.contactName ? ` · contato: ${deal.contactName}` : ""}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" asChild>
-              <Link href={`/empresas/${lead.businessId}`}>
+              <Link href={`/empresas/${deal.businessId}`}>
                 <ExternalLink data-icon="inline-start" />
                 Ver empresa
               </Link>
@@ -217,11 +224,11 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
               <CardTitle>Histórico</CardTitle>
             </CardHeader>
             <CardContent>
-              <Timeline events={lead.timeline} />
+              <Timeline events={deal.timeline} />
             </CardContent>
           </Card>
 
-          <LeadNotes notes={lead.notes} onAdd={handleAddNote} />
+          <DealNotes notes={deal.notes} onAdd={handleAddNote} />
         </div>
 
         <Card className="[--card-spacing:--spacing(5)] lg:sticky lg:top-10">
@@ -232,12 +239,12 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
             <div className="rounded-lg bg-muted/60 px-4 py-3">
               <p className="text-xs text-muted-foreground">Valor potencial</p>
               <p className="mt-0.5 font-heading text-2xl font-medium">
-                {formatCurrency(lead.estimatedValue)}
+                {formatCurrency(deal.estimatedValue)}
               </p>
             </div>
 
             <dl className="space-y-3">
-              <SummaryRow label="Serviço">{lead.serviceName}</SummaryRow>
+              <SummaryRow label="Serviço">{deal.serviceName}</SummaryRow>
               <SummaryRow label="Score">
                 <span
                   className={cn(
@@ -245,30 +252,30 @@ export function LeadDetail({ leadId }: LeadDetailProps) {
                     SCORE_TIER_STYLES[tier.id].text
                   )}
                 >
-                  {lead.score}
+                  {deal.score}
                   <span className="text-muted-foreground">/{SCORE_MAX}</span>
                 </span>
               </SummaryRow>
-              <SummaryRow label="Problema">{lead.problem}</SummaryRow>
+              <SummaryRow label="Problema">{deal.problem}</SummaryRow>
               <SummaryRow label="Último contato">
-                {formatRelativeDate(lead.lastContactAt)}
+                {formatRelativeDate(deal.lastContactAt)}
               </SummaryRow>
             </dl>
 
             <div className="space-y-1.5 border-t border-border pt-4">
               <label
-                htmlFor="lead-status"
+                htmlFor="deal-status"
                 className="text-xs text-muted-foreground"
               >
                 Status
               </label>
               <Select
-                value={lead.status}
+                value={deal.status}
                 onValueChange={(value) =>
-                  void handleStatusChange(value as LeadStatus)
+                  void handleStatusChange(value as DealStatus)
                 }
               >
-                <SelectTrigger id="lead-status" className="w-full">
+                <SelectTrigger id="deal-status" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

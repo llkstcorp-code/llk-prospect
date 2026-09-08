@@ -6,32 +6,32 @@ import { Kanban } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useToast } from "@/components/common/toast";
-import { KanbanBoard } from "@/components/leads/kanban-board";
+import { KanbanBoard } from "@/components/deals/kanban-board";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getLeadStatusConfig, LEAD_STATUSES } from "@/lib/constants";
+import { getDealStatusConfig, LEAD_STATUSES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
-import { useLeads } from "@/store/leads-store";
-import type { Lead, LeadStatus } from "@/types";
+import { useDeals } from "@/store/deals-store";
+import type { Deal, DealStatus } from "@/types";
 
 export default function CrmPage() {
-  const { leads, isLoading, changeStatus } = useLeads();
+  const { deals, isLoading, changeStatus } = useDeals();
   const { toast } = useToast();
 
-  const openValue = leads
-    .filter((lead) => lead.status !== "perdido" && lead.status !== "fechado")
-    .reduce((total, lead) => total + lead.estimatedValue, 0);
+  const openValue = deals
+    .filter((deal) => deal.status !== "perdido" && deal.status !== "fechado")
+    .reduce((total, deal) => total + deal.estimatedValue, 0);
 
-  async function handleStatusChange(lead: Lead, status: LeadStatus) {
+  async function handleStatusChange(deal: Deal, status: DealStatus) {
     try {
-      await changeStatus(lead.id, status);
+      await changeStatus(deal.id, status);
       toast({
-        title: `${lead.businessName} movido para ${getLeadStatusConfig(status).label}`,
+        title: `${deal.businessName} movido para ${getDealStatusConfig(status).label}`,
         variant: "success",
       });
     } catch {
-      toast({ title: "Não foi possível mover o lead", variant: "error" });
+      toast({ title: "Não foi possível mover o negócio", variant: "error" });
     }
   }
 
@@ -39,10 +39,10 @@ export default function CrmPage() {
     <div className="space-y-6">
       <PageHeader
         title="CRM"
-        description="Acompanhe cada lead da primeira abordagem até o fechamento."
+        description="Acompanhe cada negócio da primeira abordagem até o fechamento."
         actions={
           <Button variant="outline" asChild>
-            <Link href="/leads">Ver lista de leads</Link>
+            <Link href="/negocios">Ver todos os negócios</Link>
           </Button>
         }
       />
@@ -53,11 +53,11 @@ export default function CrmPage() {
             <Skeleton key={status.id} className="h-72 w-[17rem] shrink-0" />
           ))}
         </div>
-      ) : leads.length === 0 ? (
+      ) : deals.length === 0 ? (
         <Card>
           <EmptyState
             icon={Kanban}
-            title="Nenhum lead no CRM"
+            title="Nenhum negócio no funil"
             description="Adicione uma empresa à sua prospecção para começar a acompanhar as etapas comerciais."
             action={
               <Button asChild>
@@ -69,13 +69,13 @@ export default function CrmPage() {
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {leads.length} {leads.length === 1 ? "lead" : "leads"} no funil ·{" "}
+            {deals.length} {deals.length === 1 ? "negócio" : "negócios"} no funil ·{" "}
             {formatCurrency(openValue)} em negociações abertas
           </p>
           <KanbanBoard
-            leads={leads}
-            onStatusChange={(lead, status) =>
-              void handleStatusChange(lead, status)
+            deals={deals}
+            onStatusChange={(deal, status) =>
+              void handleStatusChange(deal, status)
             }
           />
         </>

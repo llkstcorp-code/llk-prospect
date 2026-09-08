@@ -12,14 +12,14 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { formatLongDate } from "@/lib/format";
-import type { LeadNote } from "@/types";
+import type { DealNote } from "@/types";
 
-interface LeadNotesProps {
-  notes: LeadNote[];
+interface DealNotesProps {
+  notes: DealNote[];
   onAdd: (content: string) => Promise<void>;
 }
 
-export function LeadNotes({ notes, onAdd }: LeadNotesProps) {
+export function DealNotes({ notes, onAdd }: DealNotesProps) {
   const [content, setContent] = React.useState("");
   const [isPending, setIsPending] = React.useState(false);
 

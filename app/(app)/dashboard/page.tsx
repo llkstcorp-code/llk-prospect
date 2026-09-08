@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { StatsSkeleton } from "@/components/common/loading-state";
 import { StatCard } from "@/components/common/stat-card";
 import { ConversionFunnel } from "@/components/dashboard/conversion-funnel";
-import { LeadsChart } from "@/components/dashboard/leads-chart";
+import { DealsChart } from "@/components/dashboard/deals-chart";
 import { PriorityOpportunities } from "@/components/dashboard/priority-opportunities";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useLeads } from "@/store/leads-store";
+import { useDeals } from "@/store/deals-store";
 import { useProspecting } from "@/store/prospecting-store";
 import type { ChartPoint, FunnelStage } from "@/types";
 
@@ -51,25 +51,25 @@ function buildHistory(dates: string[]): ChartPoint[] {
 
 export default function DashboardPage() {
   const { businesses, isLoading: isLoadingBusinesses } = useProspecting();
-  const { leads, isLoading: isLoadingLeads } = useLeads();
-  const isLoading = isLoadingBusinesses || isLoadingLeads;
+  const { deals, isLoading: isLoadingDeals } = useDeals();
+  const isLoading = isLoadingBusinesses || isLoadingDeals;
   const [greeting] = React.useState(getGreeting);
 
   const opportunities = businesses
     .filter((business) => business.score >= 70)
     .sort((a, b) => b.score - a.score);
-  const contacted = leads.filter((lead) => Boolean(lead.lastContactAt)).length;
-  const replied = leads.filter((lead) =>
-    ["respondeu", "reuniao", "proposta", "fechado"].includes(lead.status)
+  const contacted = deals.filter((deal) => Boolean(deal.lastContactAt)).length;
+  const replied = deals.filter((deal) =>
+    ["respondeu", "reuniao", "proposta", "fechado"].includes(deal.status)
   ).length;
-  const proposals = leads.filter((lead) =>
-    ["proposta", "fechado"].includes(lead.status)
+  const proposals = deals.filter((deal) =>
+    ["proposta", "fechado"].includes(deal.status)
   ).length;
-  const closed = leads.filter((lead) => lead.status === "fechado").length;
+  const closed = deals.filter((deal) => deal.status === "fechado").length;
   const conversion = businesses.length
     ? Math.round((closed / businesses.length) * 100)
     : 0;
-  const hasData = businesses.length > 0 || leads.length > 0;
+  const hasData = businesses.length > 0 || deals.length > 0;
 
   const funnel: FunnelStage[] = [
     { id: "encontrados", label: "Encontrados", value: businesses.length },
@@ -98,7 +98,7 @@ export default function DashboardPage() {
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <StatCard label="Empresas encontradas" value={businesses.length} trendLabel="" trend="neutral" icon={Building2} />
             <StatCard label="Oportunidades" value={opportunities.length} trendLabel="" trend="neutral" icon={Target} />
-            <StatCard label="Leads contatados" value={contacted} trendLabel="" trend="neutral" icon={Send} />
+            <StatCard label="Negócios contatados" value={contacted} trendLabel="" trend="neutral" icon={Send} />
             <StatCard label="Negócios fechados" value={closed} trendLabel="" trend="neutral" icon={Handshake} />
             <StatCard label="Taxa de conversão" value={conversion} valueSuffix="%" trendLabel="" trend="neutral" icon={Percent} />
           </section>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent>
                     {history.length >= 2 ? (
-                      <LeadsChart data={history} />
+                      <DealsChart data={history} />
                     ) : (
                       <p className="py-16 text-center text-sm text-muted-foreground">
                         Ainda não há histórico suficiente para exibir o gráfico.
@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
                 <Card className="[--card-spacing:--spacing(5)]">
                   <CardHeader>
-                    <CardTitle>Conversão de leads</CardTitle>
+                    <CardTitle>Conversão de negócios</CardTitle>
                     <CardDescription>Do resultado encontrado ao negócio fechado.</CardDescription>
                   </CardHeader>
                   <CardContent><ConversionFunnel stages={funnel} /></CardContent>

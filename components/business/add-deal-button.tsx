@@ -5,10 +5,10 @@ import { Check, Loader2, Plus } from "lucide-react";
 
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
-import { useLeads } from "@/store/leads-store";
+import { useDeals } from "@/store/deals-store";
 import type { Business } from "@/types";
 
-interface AddLeadButtonProps {
+interface AddDealButtonProps {
   business: Business;
   size?: React.ComponentProps<typeof Button>["size"];
   className?: string;
@@ -21,29 +21,37 @@ interface AddLeadButtonProps {
  * — tabela, card, resultado de busca — só precisa renderizar o botão, sem
  * repassar callback nenhum.
  */
-export function AddLeadButton({
+export function AddDealButton({
   business,
   size = "sm",
   className,
-}: AddLeadButtonProps) {
-  const { findByBusinessId, addLead } = useLeads();
+}: AddDealButtonProps) {
+  const { openDealOfBusiness, addDeal } = useDeals();
   const { toast } = useToast();
   const [isPending, setIsPending] = React.useState(false);
 
-  const isInCrm = Boolean(findByBusinessId(business.id));
+  // Só bloqueia enquanto houver negócio aberto. Depois de fechado ou perdido,
+  // a mesma empresa pode voltar ao funil — é o ponto desta fase.
+  const openDeal = openDealOfBusiness(business.id);
+  const isInCrm = Boolean(openDeal);
 
   async function handleClick() {
     setIsPending(true);
     try {
-      await addLead(business.id);
+      const deal = await addDeal({
+        businessId: business.id,
+        title: "",
+        serviceId: business.recommendedServiceId,
+        contactId: null,
+      });
       toast({
-        title: "Empresa adicionada aos leads",
-        description: `${business.name} está na etapa Novo do seu CRM.`,
+        title: "Negócio aberto",
+        description: `${deal.title} — ${business.name} está na etapa Novo.`,
         variant: "success",
       });
     } catch (error) {
       toast({
-        title: "Não foi possível adicionar o lead",
+        title: "Não foi possível abrir o negócio",
         description:
           error instanceof Error ? error.message : "Tente novamente.",
         variant: "error",
@@ -67,7 +75,7 @@ export function AddLeadButton({
       ) : (
         <Plus data-icon="inline-start" />
       )}
-      {isInCrm ? "No CRM" : "Adicionar"}
+      {isInCrm ? "No funil" : "Abrir negócio"}
     </Button>
   );
 }

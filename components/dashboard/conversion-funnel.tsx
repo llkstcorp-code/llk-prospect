@@ -7,7 +7,7 @@ interface ConversionFunnelProps {
   stages: FunnelStage[];
 }
 
-/** Funil de conversão dos leads, do primeiro contato ao fechamento. */
+/** Funil de conversão dos negócios, do primeiro contato ao fechamento. */
 export function ConversionFunnel({ stages }: ConversionFunnelProps) {
   const total = stages[0]?.value ?? 0;
 

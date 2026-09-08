@@ -26,14 +26,14 @@ import { LEAD_STATUSES } from "@/lib/constants";
 import { formatCurrency, formatRelativeDate } from "@/lib/format";
 import { getScoreTier, SCORE_TIER_STYLES } from "@/lib/score";
 import { cn } from "@/lib/utils";
-import type { Lead, LeadStatus } from "@/types";
+import type { Deal, DealStatus } from "@/types";
 
-interface LeadsTableProps {
-  leads: Lead[];
-  onStatusChange: (lead: Lead, status: LeadStatus) => void;
+interface DealsTableProps {
+  deals: Deal[];
+  onStatusChange: (deal: Deal, status: DealStatus) => void;
 }
 
-export function LeadsTable({ leads, onStatusChange }: LeadsTableProps) {
+export function DealsTable({ deals, onStatusChange }: DealsTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -49,46 +49,46 @@ export function LeadsTable({ leads, onStatusChange }: LeadsTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {leads.map((lead) => (
-          <TableRow key={lead.id}>
+        {deals.map((deal) => (
+          <TableRow key={deal.id}>
             <TableCell className="py-3 pl-5">
               <Link
-                href={`/leads/${lead.id}`}
+                href={`/negocios/${deal.id}`}
                 className="font-medium hover:underline"
               >
-                {lead.businessName}
+                {deal.title}
               </Link>
               <p className="text-xs text-muted-foreground">
-                {lead.city}, {lead.state}
+                {deal.businessName} · {deal.city}, {deal.state}
               </p>
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {getCategoryLabel(lead.category)}
+              {getCategoryLabel(deal.category)}
             </TableCell>
             <TableCell>
               <span
                 className={cn(
                   "font-heading font-medium tabular-nums",
-                  SCORE_TIER_STYLES[getScoreTier(lead.score).id].text
+                  SCORE_TIER_STYLES[getScoreTier(deal.score).id].text
                 )}
               >
-                {lead.score}
+                {deal.score}
               </span>
             </TableCell>
-            <TableCell>{lead.serviceName}</TableCell>
+            <TableCell>{deal.serviceName}</TableCell>
             <TableCell className="tabular-nums">
-              {formatCurrency(lead.estimatedValue)}
+              {formatCurrency(deal.estimatedValue)}
             </TableCell>
             <TableCell>
-              <StatusBadge status={lead.status} />
+              <StatusBadge status={deal.status} />
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {formatRelativeDate(lead.lastContactAt)}
+              {formatRelativeDate(deal.lastContactAt)}
             </TableCell>
             <TableCell className="pr-5">
               <div className="flex items-center justify-end gap-1">
                 <Button variant="ghost" size="icon-sm" asChild>
-                  <Link href={`/leads/${lead.id}`} aria-label="Abrir lead">
+                  <Link href={`/negocios/${deal.id}`} aria-label="Abrir negócio">
                     <ChevronRight />
                   </Link>
                 </Button>
@@ -108,8 +108,8 @@ export function LeadsTable({ leads, onStatusChange }: LeadsTableProps) {
                     {LEAD_STATUSES.map((status) => (
                       <DropdownMenuItem
                         key={status.id}
-                        disabled={status.id === lead.status}
-                        onSelect={() => onStatusChange(lead, status.id)}
+                        disabled={status.id === deal.status}
+                        onSelect={() => onStatusChange(deal, status.id)}
                       >
                         {status.label}
                       </DropdownMenuItem>

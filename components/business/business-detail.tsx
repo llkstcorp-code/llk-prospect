@@ -7,6 +7,8 @@ import { ArrowLeft, Building2, Loader2, Plus, Send } from "lucide-react";
 
 import { BusinessInfoCard } from "@/components/business/business-info-card";
 import { ContactsCard } from "@/components/business/contacts-card";
+import { DealDialog } from "@/components/deals/deal-dialog";
+import { DealsOfBusinessCard } from "@/components/deals/deals-of-business-card";
 import { OpportunityAnalysis } from "@/components/business/opportunity-analysis";
 import { PitchCard } from "@/components/business/pitch-card";
 import { RecommendedServiceCard } from "@/components/business/recommended-service-card";
@@ -21,9 +23,9 @@ import { Card } from "@/components/ui/card";
 import { getCategoryLabel } from "@/data/categories";
 import { analyzeBusiness } from "@/services/ai";
 import { enrichBusiness, getBusiness } from "@/services/businesses";
-import { useLeads } from "@/store/leads-store";
+import { useDeals } from "@/store/deals-store";
 import { useServices } from "@/store/services-store";
-import type { Business, BusinessAnalysis, Contact } from "@/types";
+import type { Business, BusinessAnalysis, Contact, DealInput } from "@/types";
 
 type ContactChannel = "whatsapp" | "direto";
 
@@ -34,13 +36,14 @@ interface BusinessDetailProps {
 export function BusinessDetail({ businessId }: BusinessDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { findByBusinessId, addLead, registerContact } = useLeads();
+  const { dealsOfBusiness, openDealOfBusiness, addDeal, registerContact } =
+    useDeals();
   const { catalog, isLoading: isLoadingCatalog } = useServices();
 
   const [business, setBusiness] = React.useState<Business | null>(null);
   const [analysis, setAnalysis] = React.useState<BusinessAnalysis | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isAddingLead, setIsAddingLead] = React.useState(false);
+  const [isAddingDeal, setIsAddingDeal] = React.useState(false);
   const [isContacting, setIsContacting] = React.useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
   const [isEnriching, setIsEnriching] = React.useState(false);
@@ -48,6 +51,8 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
   const [primaryContact, setPrimaryContact] = React.useState<Contact | null>(
     null
   );
+  const [contacts, setContacts] = React.useState<Contact[]>([]);
+  const [isDealDialogOpen, setIsDealDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     // A análise usa o serviço recomendado, então espera o catálogo chegar —
@@ -77,26 +82,20 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
     };
   }, [businessId, catalog, isLoadingCatalog]);
 
-  const lead = findByBusinessId(businessId);
+  const deals = dealsOfBusiness(businessId);
+  const deal = openDealOfBusiness(businessId);
 
-  async function handleAddLead() {
-    if (!business) return;
-    setIsAddingLead(true);
+  async function handleAddDeal(input: DealInput) {
+    setIsAddingDeal(true);
     try {
-      await addLead(business.id);
+      const created = await addDeal(input);
       toast({
-        title: "Empresa adicionada aos leads",
-        description: `${business.name} está na etapa Novo do seu CRM.`,
+        title: "Negócio aberto",
+        description: `${created.title} está na etapa Novo do funil.`,
         variant: "success",
       });
-    } catch {
-      toast({
-        title: "Não foi possível adicionar o lead",
-        description: "Tente novamente em alguns instantes.",
-        variant: "error",
-      });
     } finally {
-      setIsAddingLead(false);
+      setIsAddingDeal(false);
     }
   }
 
@@ -134,7 +133,16 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
     if (!business) return;
     setIsContacting(true);
     try {
-      const target = lead ?? (await addLead(business.id));
+      // Registrar contato sem negócio aberto abre um: o contato precisa de
+      // algum negócio a que pertencer no histórico.
+      const target =
+        deal ??
+        (await addDeal({
+          businessId: business.id,
+          title: "",
+          serviceId: business.recommendedServiceId,
+          contactId: primaryContact?.id ?? null,
+        }));
       await registerContact(target.id);
 
       // Havendo contato principal, o registro cita a pessoa e o número dela.
@@ -197,7 +205,7 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
               <h1 className="font-heading text-2xl font-medium tracking-tight text-balance">
                 {business.name}
               </h1>
-              {lead ? <StatusBadge status={lead.status} /> : null}
+              {deal ? <StatusBadge status={deal.status} /> : null}
             </div>
             <p className="text-sm text-muted-foreground">
               {getCategoryLabel(business.category)} · {business.city},{" "}
@@ -213,18 +221,21 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {lead ? (
+            {deal ? (
               <Button asChild>
-                <Link href={`/leads/${lead.id}`}>Ver lead no CRM</Link>
+                <Link href={`/negocios/${deal.id}`}>Ver negócio aberto</Link>
               </Button>
             ) : (
-              <Button onClick={() => void handleAddLead()} disabled={isAddingLead}>
-                {isAddingLead ? (
+              <Button
+                onClick={() => setIsDealDialogOpen(true)}
+                disabled={isAddingDeal}
+              >
+                {isAddingDeal ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   <Plus data-icon="inline-start" />
                 )}
-                Adicionar aos leads
+                Abrir negócio
               </Button>
             )}
             <Button
@@ -259,15 +270,21 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
         <RecommendedServiceCard
           service={analysis.service}
           reasons={analysis.reasons}
-          isInCrm={Boolean(lead)}
-          isPending={isAddingLead}
-          onAddToCrm={() => void handleAddLead()}
+          isInCrm={Boolean(deal)}
+          isPending={isAddingDeal}
+          onAddToCrm={() => setIsDealDialogOpen(true)}
           className="lg:col-start-2 lg:row-start-1"
         />
         <ContactsCard
           businessId={business.id}
           onPrimaryChange={setPrimaryContact}
+          onContactsChange={setContacts}
           className="lg:col-start-2 lg:row-start-2"
+        />
+        <DealsOfBusinessCard
+          deals={deals}
+          onOpenDeal={() => setIsDealDialogOpen(true)}
+          className="lg:col-start-1 lg:row-start-4"
         />
         <PitchCard
           pitch={analysis.pitch}
@@ -280,14 +297,23 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
         />
       </div>
 
+      <DealDialog
+        open={isDealDialogOpen}
+        onOpenChange={setIsDealDialogOpen}
+        business={business}
+        contacts={contacts}
+        existingCount={deals.length}
+        onSubmit={handleAddDeal}
+      />
+
       <ConfirmDialog
         open={isContactDialogOpen}
         onOpenChange={setIsContactDialogOpen}
         title={`Registrar contato com ${business.name}?`}
         description={
           primaryContact
-            ? `O contato com ${primaryContact.name} entra no histórico e o lead avança para a etapa Contatado.`
-            : "O lead será criado caso ainda não exista e avançará para a etapa Contatado, com o registro no histórico."
+            ? `O contato com ${primaryContact.name} entra no histórico e o negócio avança para a etapa Contatado.`
+            : "O negócio será aberto caso ainda não exista e avançará para a etapa Contatado, com o registro no histórico."
         }
         confirmLabel="Registrar contato"
         onConfirm={() => handleContact("direto")}

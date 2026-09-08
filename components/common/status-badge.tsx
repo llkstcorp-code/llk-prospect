@@ -1,8 +1,8 @@
-import { getLeadStatusConfig } from "@/lib/constants";
+import { getDealStatusConfig } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import type { LeadStatus } from "@/types";
+import type { DealStatus } from "@/types";
 
-const STATUS_STYLES: Record<LeadStatus, { badge: string; dot: string }> = {
+const STATUS_STYLES: Record<DealStatus, { badge: string; dot: string }> = {
   novo: { badge: "bg-secondary text-secondary-foreground", dot: "bg-foreground/40" },
   contatado: { badge: "bg-brand-surface text-brand", dot: "bg-brand/60" },
   respondeu: { badge: "bg-brand-surface text-brand", dot: "bg-brand" },
@@ -19,12 +19,12 @@ const STATUS_STYLES: Record<LeadStatus, { badge: string; dot: string }> = {
 };
 
 interface StatusBadgeProps {
-  status: LeadStatus;
+  status: DealStatus;
   className?: string;
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = getLeadStatusConfig(status);
+  const config = getDealStatusConfig(status);
   const styles = STATUS_STYLES[status];
 
   return (

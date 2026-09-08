@@ -30,12 +30,15 @@ interface ContactsCardProps {
   className?: string;
   /** Avisa a ficha da empresa de quem é o contato padrão da abordagem. */
   onPrimaryChange?: (contact: Contact | null) => void;
+  /** Lista completa, para o diálogo de abrir negócio escolher o contato. */
+  onContactsChange?: (contacts: Contact[]) => void;
 }
 
 export function ContactsCard({
   businessId,
   className,
   onPrimaryChange,
+  onContactsChange,
 }: ContactsCardProps) {
   const { toast } = useToast();
   const [contacts, setContacts] = React.useState<Contact[]>([]);
@@ -47,8 +50,9 @@ export function ContactsCard({
   const notifyPrimary = React.useCallback(
     (list: Contact[]) => {
       onPrimaryChange?.(list.find((item) => item.isPrimary) ?? list[0] ?? null);
+      onContactsChange?.(list);
     },
-    [onPrimaryChange]
+    [onPrimaryChange, onContactsChange]
   );
 
   React.useEffect(() => {

@@ -1,7 +1,7 @@
 import type {
   BusinessSort,
-  LeadStatus,
-  LeadStatusConfig,
+  DealStatus,
+  DealStatusConfig,
   PriceModel,
   SearchFilters,
   ServiceType,
@@ -21,11 +21,11 @@ export const SORT_OPTIONS: { value: BusinessSort; label: string }[] = [
 ];
 
 /** Ordem das colunas do CRM e das etapas do funil de vendas. */
-export const LEAD_STATUSES: LeadStatusConfig[] = [
+export const LEAD_STATUSES: DealStatusConfig[] = [
   {
     id: "novo",
     label: "Novo",
-    description: "Lead adicionado, ainda sem contato.",
+    description: "Deal adicionado, ainda sem contato.",
   },
   {
     id: "contatado",
@@ -51,11 +51,11 @@ export const LEAD_STATUSES: LeadStatusConfig[] = [
   { id: "perdido", label: "Perdido", description: "Negócio encerrado sem venda." },
 ];
 
-export const LEAD_STATUS_ORDER: LeadStatus[] = LEAD_STATUSES.map(
+export const LEAD_STATUS_ORDER: DealStatus[] = LEAD_STATUSES.map(
   (status) => status.id
 );
 
-export function getLeadStatusConfig(status: LeadStatus): LeadStatusConfig {
+export function getDealStatusConfig(status: DealStatus): DealStatusConfig {
   return (
     LEAD_STATUSES.find((item) => item.id === status) ?? LEAD_STATUSES[0]
   );
