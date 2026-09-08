@@ -1,63 +1,56 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-function unauthorized(): NextResponse {
-  return new NextResponse("Acesso restrito ao LLK Prospect.", {
-    status: 401,
-    headers: {
-      "Cache-Control": "no-store",
-      "WWW-Authenticate": 'Basic realm="LLK Prospect", charset="UTF-8"',
-    },
-  });
-}
+import { refreshSession } from "@/lib/supabase/proxy";
 
 /**
- * Rotas públicas.
+ * Porta de entrada do painel.
  *
- * As landing pages de demonstração são feitas para ser enviadas por link a um
- * prospect — exigir a senha do painel mataria o propósito. Tudo o mais (CRM,
- * APIs, configurações) continua atrás do Basic Auth.
+ * Faz duas coisas: renova o token da sessão (Server Components não conseguem
+ * gravar cookies, então tem de ser aqui) e redireciona quem não está logado.
+ *
+ * A checagem daqui é otimista e serve para a navegação — a autorização de
+ * verdade acontece ao lado dos dados, em `lib/auth/session.ts` e nas policies
+ * de RLS do Supabase.
  */
+
+/** Rota pública: aberta a quem não tem sessão. */
 function isPublicPath(pathname: string): boolean {
-  return pathname === "/demo" || pathname.startsWith("/demo/");
+  // As landing pages de demonstração são feitas para ser enviadas por link a um
+  // prospect — exigir login mataria o propósito.
+  if (pathname === "/demo" || pathname.startsWith("/demo/")) return true;
+  return pathname === "/entrar";
 }
 
-export function proxy(request: NextRequest): NextResponse {
-  if (isPublicPath(request.nextUrl.pathname)) return NextResponse.next();
+/** Rota de autenticação: quem já tem sessão não precisa dela. */
+function isAuthPath(pathname: string): boolean {
+  return pathname === "/entrar";
+}
 
-  const username = process.env.APP_ACCESS_USERNAME?.trim() || "llk";
-  const password = process.env.APP_ACCESS_PASSWORD;
-  const isProduction = process.env.NODE_ENV === "production";
+export async function proxy(request: NextRequest): Promise<NextResponse> {
+  const { pathname } = request.nextUrl;
+  const { response, userId } = await refreshSession(request);
 
-  if (!password) {
-    if (!isProduction) return NextResponse.next();
-    return new NextResponse(
-      "Defina APP_ACCESS_PASSWORD no ambiente de produção.",
-      { status: 503, headers: { "Cache-Control": "no-store" } }
+  if (userId && isAuthPath(pathname)) {
+    return NextResponse.redirect(new URL("/dashboard", request.nextUrl));
+  }
+
+  if (userId || isPublicPath(pathname)) return response;
+
+  // As rotas de API respondem 401 em vez de redirecionar: quem chamou foi o
+  // `fetch` da interface, e um HTML de login no lugar do JSON só produziria um
+  // erro de parse difícil de entender.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      { error: "Faça login para continuar." },
+      { status: 401, headers: { "Cache-Control": "no-store" } }
     );
   }
 
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Basic ")) return unauthorized();
-
-  try {
-    const credentials = atob(authorization.slice(6));
-    const separator = credentials.indexOf(":");
-    const receivedUsername = credentials.slice(0, separator);
-    const receivedPassword = credentials.slice(separator + 1);
-
-    if (
-      separator === -1 ||
-      receivedUsername !== username ||
-      receivedPassword !== password
-    ) {
-      return unauthorized();
-    }
-  } catch {
-    return unauthorized();
-  }
-
-  return NextResponse.next();
+  const login = new URL("/entrar", request.nextUrl);
+  // Guarda o destino para devolver a pessoa onde ela tentou entrar.
+  if (pathname !== "/") login.searchParams.set("destino", pathname);
+  return NextResponse.redirect(login);
 }
 
 export const config = {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import { enrichFromWebsite } from "@/services/places/enrich";
 import {
   getStoredBusiness,
@@ -11,6 +12,9 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     const business = await getStoredBusiness(id);
     if (!business) {

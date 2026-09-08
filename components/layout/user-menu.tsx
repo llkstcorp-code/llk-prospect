@@ -11,7 +11,6 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { useToast } from "@/components/common/toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { signOut } from "@/lib/auth/actions";
 import { useTheme, type Theme } from "@/store/theme-store";
 import type { UserProfile } from "@/types";
 
@@ -43,7 +43,6 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user, onNavigate }: UserMenuProps) {
-  const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -98,17 +97,17 @@ export function UserMenu({ user, onNavigate }: UserMenuProps) {
           ))}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={() =>
-            toast({
-              title: "Sessão encerrada",
-              description:
-                "A autenticação real será conectada em uma próxima etapa.",
-            })
-          }
-        >
-          <LogOut />
-          Sair
+        <DropdownMenuItem asChild>
+          {/*
+            Sair é uma Server Action e não um link: precisa apagar o cookie de
+            sessão no servidor, senão o token continuaria valendo.
+          */}
+          <form action={signOut}>
+            <button type="submit" className="w-full">
+              <LogOut />
+              Sair
+            </button>
+          </form>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

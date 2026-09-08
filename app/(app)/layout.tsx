@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LeadsProvider } from "@/store/leads-store";
 import { ProfileProvider } from "@/store/profile-store";
 import { ProspectingProvider } from "@/store/prospecting-store";
+import { ServicesProvider } from "@/store/services-store";
 
 /**
  * Providers do painel. Ficam neste grupo de rotas (e não no layout raiz)
@@ -15,11 +16,13 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     <ToastProvider>
       <TooltipProvider delayDuration={200}>
         <ProfileProvider>
-          <ProspectingProvider>
-            <LeadsProvider>
-              <AppShell>{children}</AppShell>
-            </LeadsProvider>
-          </ProspectingProvider>
+          <ServicesProvider>
+            <ProspectingProvider>
+              <LeadsProvider>
+                <AppShell>{children}</AppShell>
+              </LeadsProvider>
+            </ProspectingProvider>
+          </ServicesProvider>
         </ProfileProvider>
       </TooltipProvider>
     </ToastProvider>

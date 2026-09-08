@@ -1,10 +1,4 @@
-/**
- * Ponto único de contato com o "backend".
- *
- * Hoje as funções de `/services` resolvem com dados mockados. Quando o backend
- * existir, cada serviço passa a chamar o endpoint correspondente abaixo — as
- * assinaturas usadas pelas telas continuam iguais.
- */
+/** Ponto único de contato com as rotas de API do próprio app. */
 export const API_ENDPOINTS = {
   businesses: "/api/businesses",
   searchBusinesses: "/api/businesses/search",
@@ -15,6 +9,7 @@ export const API_ENDPOINTS = {
   lead: (id: string) => `/api/leads/${id}`,
   services: "/api/services",
   service: (id: string) => `/api/services/${id}`,
+  profile: "/api/perfil",
   dashboard: "/api/dashboard",
 } as const;
 

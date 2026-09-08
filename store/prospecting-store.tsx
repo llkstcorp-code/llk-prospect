@@ -12,6 +12,7 @@ interface ProspectingContextValue {
   error: string | null;
   reload: () => void;
   registerSearch: (businesses: Business[]) => void;
+  registerBusiness: (business: Business) => void;
 }
 
 const ProspectingContext = React.createContext<ProspectingContextValue | null>(
@@ -58,6 +59,14 @@ export function ProspectingProvider({
     setReloadToken((token) => token + 1);
   }, []);
 
+  /** Empresa cadastrada na mão: entra na lista sem uma nova busca. */
+  const registerBusiness = React.useCallback((business: Business) => {
+    setBusinesses((current) => [
+      business,
+      ...current.filter((item) => item.id !== business.id),
+    ]);
+  }, []);
+
   const registerSearch = React.useCallback((results: Business[]) => {
     setSearchesCount((count) => count + 1);
     setBusinesses((current) => {
@@ -75,8 +84,17 @@ export function ProspectingProvider({
       error,
       reload,
       registerSearch,
+      registerBusiness,
     }),
-    [businesses, searchesCount, isLoading, error, reload, registerSearch]
+    [
+      businesses,
+      searchesCount,
+      isLoading,
+      error,
+      reload,
+      registerSearch,
+      registerBusiness,
+    ]
   );
 
   return (

@@ -2,6 +2,7 @@ import { sortBusinesses } from "@/lib/business-filters";
 import type {
   Business,
   BusinessSort,
+  ManualBusinessInput,
   SearchFilters,
   SearchResult,
 } from "@/types";
@@ -22,7 +23,10 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Requisição falhou: ${response.status}`);
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(payload?.error ?? `Requisição falhou: ${response.status}`);
   }
 
   return (await response.json()) as T;
@@ -42,6 +46,16 @@ export async function searchBusinesses(
 /** GET /api/businesses */
 export async function getBusinesses(): Promise<Business[]> {
   return request<Business[]>(`${API_ENDPOINTS.businesses}?minScore=0`);
+}
+
+/** POST /api/businesses — cadastro manual. */
+export async function createManualBusiness(
+  input: ManualBusinessInput
+): Promise<Business> {
+  return request<Business>(API_ENDPOINTS.businesses, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 /** GET /api/businesses/:id */

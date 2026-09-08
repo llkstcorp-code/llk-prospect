@@ -12,10 +12,10 @@ calcula potencial comercial e organiza oportunidades, leads e negociações.
 - Persistência de empresas, buscas, leads, CRM, timeline, notas e serviços no
   Supabase.
 - Dashboard calculado somente com dados reais.
-- Proteção compartilhada para a V1 publicada.
+- Autenticação por usuário com Supabase Auth. Funil compartilhado pela equipe.
 - Análise comercial e abordagem geradas por templates locais.
 - WhatsApp simulado: o contato é registrado, mas a mensagem não é enviada.
-- Perfil e preferências pessoais permanecem locais até a autenticação real.
+- Perfil e preferências pessoais salvos no perfil do usuário.
 
 ## Stack
 
@@ -56,9 +56,6 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 
-APP_ACCESS_USERNAME=llk
-APP_ACCESS_PASSWORD=
-
 GOOGLE_MAPS_API_KEY=
 ```
 
@@ -67,15 +64,20 @@ GOOGLE_MAPS_API_KEY=
 | `BUSINESSES_PROVIDER` | Sim | Use `geoapify` na V1. |
 | `GEOAPIFY_API_KEY` | Sim | Busca empresas; utilizada somente no servidor. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Sim | URL pública do projeto Supabase. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Sim | Chave pública preparada para integrações futuras. |
-| `SUPABASE_SECRET_KEY` | Sim | Acesso privilegiado do servidor ao banco. Nunca exponha. |
-| `APP_ACCESS_USERNAME` | Produção | Usuário da proteção compartilhada. O padrão é `llk`. |
-| `APP_ACCESS_PASSWORD` | Produção | Senha forte obrigatória para abrir a aplicação publicada. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Sim | Chave do login e das consultas do usuário, filtradas por RLS. |
+| `SUPABASE_SECRET_KEY` | Sim | Ignora o RLS. Só para tarefas administrativas no servidor. Nunca exponha. |
 | `GOOGLE_MAPS_API_KEY` | Não | Alternativa futura ao Geoapify. |
 
-Sem `APP_ACCESS_PASSWORD`, o desenvolvimento local continua funcionando, mas a
-aplicação responde com erro `503` em produção. Isso evita uma publicação pública
-acidental das rotas privilegiadas.
+## Acesso
+
+O acesso é por conta individual do Supabase Auth. Não há cadastro aberto: crie os
+usuários no painel do Supabase, em **Authentication → Users**. O perfil em
+`public.profiles` é criado automaticamente por trigger.
+
+O funil é compartilhado: quem está logado vê e edita todos os leads, buscas e
+notas. Cada lead guarda em `owner_id` quem o trouxe, para atribuição — não para
+restringir acesso. O que o RLS protege é a fronteira do login: sem sessão, o
+banco não devolve nada.
 
 ## Banco de dados
 
@@ -127,22 +129,23 @@ O `.env.local`, `node_modules`, `.next` e arquivos temporários já estão no
 2. Importe o repositório privado do GitHub.
 3. Mantenha o preset **Next.js** e os comandos automáticos.
 4. Em **Environment Variables**, cadastre todas as variáveis obrigatórias.
-5. Use uma senha longa e exclusiva em `APP_ACCESS_PASSWORD`.
-6. Aplique as variáveis a **Production** e **Preview**.
-7. Clique em **Deploy**.
-8. Abra a URL e informe o usuário e a senha compartilhados.
+5. Aplique as variáveis a **Production** e **Preview**.
+6. Clique em **Deploy**.
+7. Abra a URL e entre com uma conta criada no Supabase Auth.
 
 Para cada alteração enviada à branch `main`, a Vercel fará um novo deploy.
 
 ## Segurança da publicação
 
-Este sistema manipula dados comerciais e utiliza uma chave privilegiada do
-Supabase. Não remova `proxy.ts` nem `APP_ACCESS_PASSWORD` enquanto não existir
-autenticação real com usuários e políticas RLS próprias.
+Este sistema manipula dados comerciais. Duas regras não devem ser afrouxadas:
 
-Na Vercel Hobby, a proteção padrão da plataforma não cobre o domínio de produção.
-Por isso, esta V1 inclui uma proteção compartilhada dentro da aplicação. Consulte
-também [SECURITY.md](SECURITY.md).
+- `SUPABASE_SECRET_KEY` ignora o RLS. Use apenas em tarefas sem usuário; nunca
+  para responder uma requisição do painel.
+- `proxy.ts` renova a sessão e redireciona quem não está logado, mas é uma
+  checagem otimista. A autorização real está nas policies de RLS e em
+  `lib/auth/session.ts`.
+
+Consulte também [SECURITY.md](SECURITY.md).
 
 ## Estrutura principal
 

@@ -43,6 +43,9 @@ export interface ServiceOffering {
   minScore: number;
 }
 
+/** `manual` é a empresa digitada por uma pessoa, sem fonte pública por trás. */
+export type BusinessDataSource = "google" | "geoapify" | "mock" | "manual";
+
 export interface Business {
   id: string;
   name: string;
@@ -56,7 +59,7 @@ export interface Business {
   /** Falso quando a fonte não oferece avaliações públicas. */
   ratingAvailable?: boolean;
   /** Origem usada para obter os dados comerciais. */
-  dataSource?: "google" | "geoapify" | "mock";
+  dataSource?: BusinessDataSource;
   website: string | null;
   instagram: string | null;
   /** Preenchido apenas pelo enriquecimento sob demanda. */
@@ -190,6 +193,21 @@ export interface SearchResult {
   businesses: Business[];
   total: number;
   provider?: "google" | "geoapify" | "mock";
+}
+
+/** O que uma pessoa digita ao cadastrar uma empresa na mão. */
+export interface ManualBusinessInput {
+  name: string;
+  category: CategoryId;
+  city: string;
+  state: string;
+  phone: string;
+  address: string;
+  /** URL quando informada; string vazia quando a pessoa só marcou que existe. */
+  website: string;
+  instagram: string;
+  hasWebsite: boolean;
+  hasInstagram: boolean;
 }
 
 export type TrendDirection = "up" | "down" | "neutral";

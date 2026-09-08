@@ -1,17 +1,11 @@
-import type { ProspectingPreferences, UserProfile } from "@/types";
+import type { ProspectingPreferences } from "@/types";
 
 /**
- * Conta usada enquanto não há autenticação real. É uma conta da LLK, não uma
- * pessoa fictícia — os dados podem ser editados em /configuracoes.
+ * Preferências iniciais de prospecção.
+ *
+ * Valem para quem ainda não salvou nada em /configuracoes. A partir do primeiro
+ * salvamento, as preferências vivem no perfil do usuário no banco.
  */
-export const MOCK_USER: UserProfile = {
-  name: "LLK Digital",
-  email: "contato@llk.com.br",
-  company: "LLK",
-  role: "Comercial",
-  initials: "LLK",
-};
-
 export const MOCK_PROSPECTING_PREFERENCES: ProspectingPreferences = {
   defaultCity: "Passos",
   defaultState: "MG",

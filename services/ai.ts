@@ -1,5 +1,8 @@
-import { getServiceById, MOCK_SERVICES } from "@/data/mockServices";
 import { formatRating } from "@/lib/format";
+import {
+  resolveRecommendedService,
+  type ServiceCatalog,
+} from "@/lib/service-catalog";
 import type {
   AnalysisIndicator,
   Business,
@@ -212,9 +215,17 @@ export function buildPitch(business: Business, serviceName: string): string {
 }
 
 /** Análise derivada só dos dados, sem depender de rede. */
-export function buildTemplateAnalysis(business: Business): BusinessAnalysis {
-  const service =
-    getServiceById(business.recommendedServiceId) ?? MOCK_SERVICES[0];
+export function buildTemplateAnalysis(
+  business: Business,
+  catalog: ServiceCatalog
+): BusinessAnalysis {
+  const service = resolveRecommendedService(
+    catalog,
+    business.recommendedServiceId
+  );
+  if (!service) {
+    throw new Error("Catálogo de serviços vazio: não há o que recomendar.");
+  }
 
   return {
     businessId: business.id,
@@ -235,7 +246,8 @@ export function buildTemplateAnalysis(business: Business): BusinessAnalysis {
  * fica sem análise.
  */
 export async function analyzeBusiness(
-  business: Business
+  business: Business,
+  catalog: ServiceCatalog
 ): Promise<BusinessAnalysis> {
   try {
     const response = await fetch(API_ENDPOINTS.analyzeBusiness(business.id), {
@@ -248,6 +260,6 @@ export async function analyzeBusiness(
     return (await response.json()) as BusinessAnalysis;
   } catch (error) {
     console.error("Análise via API indisponível, usando template:", error);
-    return buildTemplateAnalysis(business);
+    return buildTemplateAnalysis(business, catalog);
   }
 }

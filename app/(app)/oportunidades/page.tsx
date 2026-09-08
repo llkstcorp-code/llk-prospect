@@ -19,10 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES, getCategoryLabel } from "@/data/categories";
-import { getServiceName, MOCK_SERVICES } from "@/data/mockServices";
 import { LEAD_STATUSES } from "@/lib/constants";
+import { getServiceName } from "@/lib/service-catalog";
 import { useLeads } from "@/store/leads-store";
 import { useProspecting } from "@/store/prospecting-store";
+import { useServices } from "@/store/services-store";
 import type { Business, CategoryId, LeadStatus, ScoreTierId } from "@/types";
 
 const ALL = "todos";
@@ -47,6 +48,7 @@ export default function OpportunitiesPage() {
   const { toast } = useToast();
   const { findByBusinessId, addLead } = useLeads();
   const { businesses: discoveredBusinesses } = useProspecting();
+  const { catalog } = useServices();
   const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
 
@@ -187,7 +189,7 @@ export default function OpportunitiesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>Todos os serviços</SelectItem>
-                {MOCK_SERVICES.map((service) => (
+                {catalog.map((service) => (
                   <SelectItem key={service.id} value={service.id}>
                     {service.name}
                   </SelectItem>
@@ -263,7 +265,10 @@ export default function OpportunitiesPage() {
               <OpportunityCard
                 key={business.id}
                 business={business}
-                serviceName={getServiceName(business.recommendedServiceId)}
+                serviceName={getServiceName(
+                  catalog,
+                  business.recommendedServiceId
+                )}
                 status={getStatus(business)}
                 isInCrm={Boolean(findByBusinessId(business.id))}
                 isPending={pendingId === business.id}

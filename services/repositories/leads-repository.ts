@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getServiceById } from "@/data/mockServices";
+import { requireUser } from "@/lib/auth/session";
 import { getLeadStatusConfig } from "@/lib/constants";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type {
@@ -8,11 +8,11 @@ import type {
   Lead,
   LeadNote,
   LeadStatus,
-  ServiceOffering,
   TimelineEvent,
   TimelineEventType,
 } from "@/types";
 import { getStoredBusiness } from "./businesses-repository";
+import { getStoredService } from "./services-repository";
 
 interface LeadRow {
   id: string;
@@ -106,7 +106,7 @@ function mapLead(
 async function loadLeadRelations(rows: LeadRow[]): Promise<Lead[]> {
   if (rows.length === 0) return [];
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const businessIds = [...new Set(rows.map((row) => row.business_id))];
   const leadIds = rows.map((row) => row.id);
 
@@ -169,7 +169,14 @@ async function loadLeadRelations(rows: LeadRow[]): Promise<Lead[]> {
 
   return rows.flatMap((row) => {
     const business = businesses.get(row.business_id);
-    if (!business) return [];
+    if (!business) {
+      // Some da lista para não quebrar as outras, mas deixa rastro: um lead que
+      // desaparece em silêncio é o tipo de falha que se investiga às cegas.
+      console.warn(
+        `Lead ${row.id} ignorado: empresa ${row.business_id} não foi encontrada.`
+      );
+      return [];
+    }
     return [
       mapLead(
         row,
@@ -181,26 +188,8 @@ async function loadLeadRelations(rows: LeadRow[]): Promise<Lead[]> {
   });
 }
 
-async function ensureService(service: ServiceOffering): Promise<void> {
-  const supabase = getSupabaseServerClient();
-  const { error } = await supabase.from("services").upsert(
-    {
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      price_model: service.priceModel,
-      type: service.type,
-      min_score: service.minScore,
-    },
-    { onConflict: "id" }
-  );
-
-  if (error) throw new Error(`Falha ao preparar serviço: ${error.message}`);
-}
-
 export async function listStoredLeads(): Promise<Lead[]> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
     .select("*")
@@ -211,7 +200,7 @@ export async function listStoredLeads(): Promise<Lead[]> {
 }
 
 export async function getStoredLead(id: string): Promise<Lead | null> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
     .select("*")
@@ -228,7 +217,7 @@ export async function getStoredLead(id: string): Promise<Lead | null> {
 export async function getStoredLeadByBusinessId(
   businessId: string
 ): Promise<Lead | null> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
     .select("*")
@@ -243,21 +232,26 @@ export async function getStoredLeadByBusinessId(
 }
 
 export async function createStoredLead(businessId: string): Promise<Lead> {
+  const user = await requireUser();
   const existing = await getStoredLeadByBusinessId(businessId);
   if (existing) return existing;
 
   const business = await getStoredBusiness(businessId);
   if (!business) throw new Error(`Empresa ${businessId} não encontrada.`);
 
-  const service = getServiceById(business.recommendedServiceId);
-  if (!service) throw new Error("Serviço recomendado não encontrado.");
-  await ensureService(service);
+  const service = await getStoredService(business.recommendedServiceId);
+  if (!service) {
+    throw new Error(
+      `Serviço recomendado ${business.recommendedServiceId} não existe no catálogo.`
+    );
+  }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("leads")
     .insert({
+      owner_id: user.id,
       business_id: business.id,
       service_id: service.id,
       service_name: service.name,
@@ -313,7 +307,7 @@ export async function updateStoredLeadStatus(
   if (!current) throw new Error(`Lead ${id} não encontrado.`);
   if (current.status === status) return current;
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
   const update: Record<string, string> = {
     status,
@@ -346,7 +340,7 @@ export async function addStoredLeadNote(
   const current = await getStoredLead(id);
   if (!current) throw new Error(`Lead ${id} não encontrado.`);
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
   const { error } = await supabase.from("lead_notes").insert({
     lead_id: id,
@@ -374,7 +368,7 @@ export async function registerStoredLeadContact(id: string): Promise<Lead> {
   const current = await getStoredLead(id);
   if (!current) throw new Error(`Lead ${id} não encontrado.`);
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const now = new Date().toISOString();
   const update: Record<string, string> = {
     last_contact_at: now,

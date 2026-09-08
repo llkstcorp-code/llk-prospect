@@ -1,12 +1,14 @@
 import type { ServiceOffering } from "@/types";
 
 /**
- * Catálogo de serviços da LLK usado nas recomendações e no CRM.
+ * Catálogo inicial de serviços da LLK.
  *
- * O array é mutado em memória por `services/settings.ts` (cadastro de serviços)
- * para que todas as telas enxerguem o mesmo catálogo enquanto não há banco.
+ * É semente, não fonte: só é lido quando a tabela `services` está vazia, para
+ * que um projeto novo do Supabase já abra com o catálogo padrão. Depois disso
+ * quem manda é o banco — nada em `app/`, `services/` ou `lib/` deve importar
+ * este arquivo fora do caminho de seed.
  */
-export const MOCK_SERVICES: ServiceOffering[] = [
+export const DEFAULT_SERVICES: ServiceOffering[] = [
   {
     id: "site-profissional",
     name: "Site Profissional",
@@ -59,11 +61,8 @@ export const MOCK_SERVICES: ServiceOffering[] = [
   },
 ];
 
-export function getServiceById(id: string): ServiceOffering | undefined {
-  return MOCK_SERVICES.find((service) => service.id === id);
-}
-
-export function getServiceName(id: string): string {
-  return getServiceById(id)?.name ?? "Serviço não definido";
-}
-
+/**
+ * Serviço usado quando a empresa aponta para um id que não existe mais no
+ * catálogo — um serviço removido nas configurações, por exemplo.
+ */
+export const FALLBACK_SERVICE_ID = "site-profissional";

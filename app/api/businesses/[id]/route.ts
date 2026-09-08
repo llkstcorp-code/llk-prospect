@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import { getStoredBusiness } from "@/services/repositories/businesses-repository";
 
 export async function GET(
@@ -7,6 +8,9 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     const business = await getStoredBusiness(id);
     if (!business) {

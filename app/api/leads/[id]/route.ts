@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import {
   addStoredLeadNote,
   getStoredLead,
@@ -33,6 +34,9 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     const lead = await getStoredLead(id);
     if (!lead) {
@@ -56,6 +60,9 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const denied = await guardSession();
+  if (denied) return denied;
+
   let body: UpdateLeadBody;
   try {
     body = (await request.json()) as UpdateLeadBody;

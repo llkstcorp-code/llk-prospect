@@ -21,6 +21,7 @@ import { getCategoryLabel } from "@/data/categories";
 import { analyzeBusiness } from "@/services/ai";
 import { enrichBusiness, getBusiness } from "@/services/businesses";
 import { useLeads } from "@/store/leads-store";
+import { useServices } from "@/store/services-store";
 import type { Business, BusinessAnalysis } from "@/types";
 
 type ContactChannel = "whatsapp" | "direto";
@@ -33,6 +34,7 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { findByBusinessId, addLead, registerContact } = useLeads();
+  const { catalog, isLoading: isLoadingCatalog } = useServices();
 
   const [business, setBusiness] = React.useState<Business | null>(null);
   const [analysis, setAnalysis] = React.useState<BusinessAnalysis | null>(null);
@@ -44,6 +46,10 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
   const [hasEnriched, setHasEnriched] = React.useState(false);
 
   React.useEffect(() => {
+    // A análise usa o serviço recomendado, então espera o catálogo chegar —
+    // sem ele o texto sairia sem preço nem nome de serviço.
+    if (isLoadingCatalog) return;
+
     let active = true;
 
     async function load() {
@@ -52,7 +58,7 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
 
       const businessResult = await getBusiness(businessId);
       const analysisResult = businessResult
-        ? await analyzeBusiness(businessResult)
+        ? await analyzeBusiness(businessResult, catalog)
         : null;
 
       if (!active) return;
@@ -65,7 +71,7 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
     return () => {
       active = false;
     };
-  }, [businessId]);
+  }, [businessId, catalog, isLoadingCatalog]);
 
   const lead = findByBusinessId(businessId);
 

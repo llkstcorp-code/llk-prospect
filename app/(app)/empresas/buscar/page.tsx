@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { SearchX, SlidersHorizontal, Telescope } from "lucide-react";
+import { Building2, SearchX, SlidersHorizontal, Telescope } from "lucide-react";
 
 import { BusinessCard } from "@/components/business/business-card";
 import { BusinessTable } from "@/components/business/business-table";
+import { ManualBusinessDialog } from "@/components/business/manual-business-dialog";
 import { SearchFiltersForm } from "@/components/business/search-filters";
 import { SearchProgress } from "@/components/business/search-progress";
 import { EmptyState } from "@/components/common/empty-state";
@@ -34,7 +35,7 @@ import type { Business, BusinessSort, SearchFilters } from "@/types";
 
 export default function SearchBusinessesPage() {
   const { toast } = useToast();
-  const { registerSearch } = useProspecting();
+  const { registerSearch, registerBusiness } = useProspecting();
   const [defaults, setDefaults] = React.useState<SearchFilters>(
     DEFAULT_SEARCH_FILTERS
   );
@@ -48,6 +49,7 @@ export default function SearchBusinessesPage() {
   const [sort, setSort] = React.useState<BusinessSort>("oportunidade");
   const [isSearching, setIsSearching] = React.useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = React.useState(false);
+  const [isManualOpen, setIsManualOpen] = React.useState(false);
 
   // Os padrões definidos em Configurações abrem a busca já preenchida.
   React.useEffect(() => {
@@ -99,6 +101,13 @@ export default function SearchBusinessesPage() {
     }
   }
 
+  function handleManualCreated(business: Business) {
+    registerBusiness(business);
+    // Entra no topo dos resultados na tela: quem acabou de cadastrar quer ver a
+    // empresa aparecer, não repetir a busca para encontrá-la.
+    setResults((current) => [business, ...(current ?? [])]);
+  }
+
   function handleReset() {
     setFilters(defaults);
     setResults(null);
@@ -126,14 +135,20 @@ export default function SearchBusinessesPage() {
         title="Encontrar empresas"
         description="Encontre empresas da sua região que podem precisar dos seus serviços."
         actions={
-          <Button
-            variant="outline"
-            className="lg:hidden"
-            onClick={() => setIsFiltersOpen(true)}
-          >
-            <SlidersHorizontal data-icon="inline-start" />
-            Filtros
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              className="lg:hidden"
+              onClick={() => setIsFiltersOpen(true)}
+            >
+              <SlidersHorizontal data-icon="inline-start" />
+              Filtros
+            </Button>
+            <Button variant="outline" onClick={() => setIsManualOpen(true)}>
+              <Building2 data-icon="inline-start" />
+              Cadastrar empresa
+            </Button>
+          </>
         }
       />
 
@@ -228,6 +243,14 @@ export default function SearchBusinessesPage() {
           )}
         </section>
       </div>
+
+      <ManualBusinessDialog
+        open={isManualOpen}
+        onOpenChange={setIsManualOpen}
+        onCreated={handleManualCreated}
+        defaultCity={filters.city}
+        defaultState={filters.state}
+      />
 
       <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
         <SheetContent

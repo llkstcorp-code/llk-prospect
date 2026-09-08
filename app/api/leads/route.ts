@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import {
   createStoredLead,
   listStoredLeads,
@@ -10,6 +11,9 @@ interface CreateLeadBody {
 }
 
 export async function GET() {
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     return NextResponse.json(await listStoredLeads());
   } catch (error) {
@@ -22,6 +26,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await guardSession();
+  if (denied) return denied;
+
   let body: CreateLeadBody;
   try {
     body = (await request.json()) as CreateLeadBody;

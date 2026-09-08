@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AddLeadButton } from "@/components/business/add-lead-button";
 import {
   PresenceIndicator,
   RatingInline,
@@ -62,9 +63,12 @@ export function BusinessCard({ business }: BusinessCardProps) {
         </div>
       </dl>
 
-      <Button variant="outline" size="sm" className="mt-4 w-full" asChild>
-        <Link href={`/empresas/${business.id}`}>Analisar</Link>
-      </Button>
+      <div className="mt-4 flex gap-2">
+        <Button variant="outline" size="sm" className="flex-1" asChild>
+          <Link href={`/empresas/${business.id}`}>Analisar</Link>
+        </Button>
+        <AddLeadButton business={business} className="flex-1" />
+      </div>
     </article>
   );
 }

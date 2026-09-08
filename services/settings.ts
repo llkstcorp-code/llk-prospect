@@ -1,17 +1,24 @@
-import {
-  MOCK_PROSPECTING_PREFERENCES,
-  MOCK_USER,
-} from "@/data/mockSettings";
+import { MOCK_PROSPECTING_PREFERENCES } from "@/data/mockSettings";
 import type {
   ProspectingPreferences,
   ServiceOffering,
   Settings,
   UserProfile,
 } from "@/types";
-import { API_ENDPOINTS, clone, delay } from "./api";
+import { API_ENDPOINTS } from "./api";
 
-let profile: UserProfile = clone(MOCK_USER);
-let prospecting: ProspectingPreferences = clone(MOCK_PROSPECTING_PREFERENCES);
+/**
+ * Perfil, preferências e catálogo do usuário logado.
+ *
+ * Tudo vem do servidor: o perfil e as preferências de `/api/perfil`, ligados à
+ * sessão, e os serviços de `/api/services`. `MOCK_PROSPECTING_PREFERENCES` fica
+ * apenas como valor inicial de quem nunca salvou preferência nenhuma.
+ */
+
+interface ProfileResponse {
+  profile: UserProfile;
+  preferences: Partial<ProspectingPreferences>;
+}
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -27,27 +34,48 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function getSettings(): Promise<Settings> {
-  const services = await request<ServiceOffering[]>(API_ENDPOINTS.services);
+function withDefaults(
+  preferences: Partial<ProspectingPreferences>
+): ProspectingPreferences {
+  return { ...MOCK_PROSPECTING_PREFERENCES, ...preferences };
+}
+
+export async function getProfile(): Promise<{
+  profile: UserProfile;
+  prospecting: ProspectingPreferences;
+}> {
+  const data = await request<ProfileResponse>(API_ENDPOINTS.profile);
   return {
-    profile: clone(profile),
-    prospecting: clone(prospecting),
-    services,
+    profile: data.profile,
+    prospecting: withDefaults(data.preferences),
   };
 }
 
+export async function getSettings(): Promise<Settings> {
+  const [{ profile, prospecting }, services] = await Promise.all([
+    getProfile(),
+    request<ServiceOffering[]>(API_ENDPOINTS.services),
+  ]);
+
+  return { profile, prospecting, services };
+}
+
 export async function updateProfile(next: UserProfile): Promise<UserProfile> {
-  await delay(300);
-  profile = clone(next);
-  return clone(profile);
+  const data = await request<ProfileResponse>(API_ENDPOINTS.profile, {
+    method: "PATCH",
+    body: JSON.stringify({ profile: next }),
+  });
+  return data.profile;
 }
 
 export async function updateProspectingPreferences(
   next: ProspectingPreferences
 ): Promise<ProspectingPreferences> {
-  await delay(300);
-  prospecting = clone(next);
-  return clone(prospecting);
+  const data = await request<ProfileResponse>(API_ENDPOINTS.profile, {
+    method: "PATCH",
+    body: JSON.stringify({ preferences: next }),
+  });
+  return withDefaults(data.preferences);
 }
 
 export async function createService(
