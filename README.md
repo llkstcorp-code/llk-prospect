@@ -125,15 +125,53 @@ O `.env.local`, `node_modules`, `.next` e arquivos temporários já estão no
 
 ## Publicar na Vercel
 
-1. Acesse o painel da Vercel e selecione **Add New → Project**.
-2. Importe o repositório privado do GitHub.
-3. Mantenha o preset **Next.js** e os comandos automáticos.
-4. Em **Environment Variables**, cadastre todas as variáveis obrigatórias.
-5. Aplique as variáveis a **Production** e **Preview**.
-6. Clique em **Deploy**.
-7. Abra a URL e entre com uma conta criada no Supabase Auth.
+### Antes de publicar
 
-Para cada alteração enviada à branch `main`, a Vercel fará um novo deploy.
+As migrations rodam no banco, não no deploy. Aplique todas em
+**SQL Editor → New query**, na ordem dos nomes, antes de subir o código — um
+deploy novo contra um banco antigo sobe sem erro e quebra em toda tela.
+
+Confira também que a conta com que você vai entrar existe em
+**Authentication → Users**.
+
+### Projeto novo
+
+1. No painel da Vercel, **Add New → Project**.
+2. Importe `llkstcorp-code/llk-prospect`.
+3. Mantenha o preset **Next.js** e os comandos automáticos.
+4. Em **Environment Variables**, cadastre as variáveis obrigatórias da tabela
+   acima, aplicadas a **Production** e **Preview**.
+5. **Deploy**.
+
+### Projeto que já existe
+
+Se o projeto foi publicado antes da autenticação por conta, as variáveis estão
+desatualizadas e é isso que precisa mudar em **Settings → Environment
+Variables**:
+
+| Variável | O que fazer |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | apontar para o projeto Supabase em uso |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | idem |
+| `SUPABASE_SECRET_KEY` | idem |
+| `APP_ACCESS_USERNAME` | remover — nada mais lê |
+| `APP_ACCESS_PASSWORD` | remover — nada mais lê |
+
+Variável alterada só vale no próximo build: depois de salvar, use
+**Deployments → ⋯ → Redeploy** e **desmarque** "Use existing Build Cache".
+
+### Conferir que subiu inteiro
+
+1. Abra a URL e confirme que ela redireciona para `/entrar`.
+2. Entre com uma conta do Supabase Auth.
+3. Abra uma demo em `/demo/<slug>` numa janela anônima: ela tem de carregar
+   **sem** pedir login. É a única parte pública do sistema.
+
+Se a tela de login abrir mas nada carregar depois de entrar, o problema é
+variável de ambiente, não código. As chaves do Supabase são o primeiro lugar a
+olhar.
+
+A cada push para `main`, a Vercel publica de novo.
 
 ## Segurança da publicação
 
