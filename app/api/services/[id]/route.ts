@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import {
   deleteStoredService,
   updateStoredService,
@@ -11,6 +12,9 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     const input = (await request.json()) as Omit<ServiceOffering, "id">;
     return NextResponse.json(await updateStoredService(id, input));
@@ -28,6 +32,9 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     await deleteStoredService(id);
     return new NextResponse(null, { status: 204 });

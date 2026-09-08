@@ -1,3 +1,4 @@
+import type { ServiceCatalog } from "@/lib/service-catalog";
 import type { Business, SearchFilters } from "@/types";
 import {
   ALL_GEOAPIFY_CATEGORIES,
@@ -52,7 +53,8 @@ async function enrichInBatches(
 }
 
 export async function searchGeoapifyBusinesses(
-  filters: SearchFilters
+  filters: SearchFilters,
+  catalog: ServiceCatalog
 ): Promise<Business[]> {
   const center = await geocodeCity(filters.city, filters.state);
   if (!center) return [];
@@ -72,12 +74,13 @@ export async function searchGeoapifyBusinesses(
   const enriched = await enrichInBatches(features);
   const foundAt = today();
 
-  return enriched.map((feature) => toBusiness(feature, foundAt));
+  return enriched.map((feature) => toBusiness(feature, foundAt, catalog));
 }
 
 export async function getGeoapifyBusiness(
-  placeId: string
+  placeId: string,
+  catalog: ServiceCatalog
 ): Promise<Business | null> {
   const details = await placeDetails(placeId);
-  return details ? toBusiness(details, today(), placeId) : null;
+  return details ? toBusiness(details, today(), catalog, placeId) : null;
 }

@@ -1,15 +1,17 @@
 import "server-only";
 
+import { requireUser } from "@/lib/auth/session";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   Business,
+  BusinessDataSource,
   CategoryId,
   SearchFilters,
 } from "@/types";
 
 interface BusinessRow {
   id: string;
-  data_source: "google" | "geoapify" | "mock";
+  data_source: BusinessDataSource;
   name: string;
   category: CategoryId;
   city: string;
@@ -85,12 +87,30 @@ function fromBusinessRow(row: BusinessRow): Business {
   };
 }
 
+/**
+ * Insere uma empresa cadastrada na mão.
+ *
+ * Usa `insert` e não `upsert`: o id é gerado aqui, então uma colisão significa
+ * bug, não cadastro repetido — e falhar alto é melhor do que sobrescrever.
+ */
+export async function insertManualBusiness(business: Business): Promise<Business> {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("businesses")
+    .insert(toBusinessRow(business))
+    .select("*")
+    .single();
+
+  if (error) throw new Error(`Falha ao cadastrar empresa: ${error.message}`);
+  return fromBusinessRow(data as BusinessRow);
+}
+
 export async function upsertBusinesses(
   businesses: Business[]
 ): Promise<void> {
   if (businesses.length === 0) return;
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { error } = await supabase
     .from("businesses")
     .upsert(businesses.map(toBusinessRow), { onConflict: "id" });
@@ -102,7 +122,7 @@ export async function listStoredBusinesses(options?: {
   minScore?: number;
   category?: CategoryId | "todas";
 }): Promise<Business[]> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   let query = supabase
     .from("businesses")
     .select("*")
@@ -123,7 +143,7 @@ export async function listStoredBusinesses(options?: {
 export async function getStoredBusiness(
   id: string
 ): Promise<Business | null> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("businesses")
     .select("*")
@@ -138,7 +158,7 @@ export async function updateStoredBusinessContact(
   id: string,
   contact: { instagram: string | null; email: string | null }
 ): Promise<void> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { error } = await supabase
     .from("businesses")
     .update({ ...contact, updated_at: new Date().toISOString() })
@@ -152,10 +172,12 @@ export async function recordBusinessSearch(
   provider: "google" | "geoapify" | "mock",
   businesses: Business[]
 ): Promise<void> {
-  const supabase = getSupabaseServerClient();
+  const user = await requireUser();
+  const supabase = await getSupabaseServerClient();
   const { data: search, error: searchError } = await supabase
     .from("searches")
     .insert({
+      owner_id: user.id,
       city: filters.city,
       state: filters.state,
       radius_km: filters.radiusKm,

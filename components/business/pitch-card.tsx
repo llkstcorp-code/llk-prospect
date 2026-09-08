@@ -19,6 +19,8 @@ const COPY_FEEDBACK_DURATION = 2000;
 interface PitchCardProps {
   pitch: string;
   phone: string;
+  /** Contato principal da empresa, quando existe algum cadastrado. */
+  contactName?: string;
   onSendWhatsApp: () => void;
   className?: string;
 }
@@ -27,6 +29,7 @@ interface PitchCardProps {
 export function PitchCard({
   pitch,
   phone,
+  contactName,
   onSendWhatsApp,
   className,
 }: PitchCardProps) {
@@ -82,7 +85,7 @@ export function PitchCard({
             Enviar pelo WhatsApp
           </Button>
           <span className="flex items-center text-xs text-muted-foreground sm:ml-auto">
-            {phone}
+            {contactName ? `${contactName} · ${phone}` : phone}
           </span>
         </div>
       </CardContent>

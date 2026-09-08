@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import {
   createStoredService,
   listStoredServices,
@@ -7,6 +8,9 @@ import {
 import type { ServiceOffering } from "@/types";
 
 export async function GET() {
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     return NextResponse.json(await listStoredServices());
   } catch (error) {
@@ -19,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     const input = (await request.json()) as Omit<ServiceOffering, "id">;
     return NextResponse.json(await createStoredService(input), { status: 201 });

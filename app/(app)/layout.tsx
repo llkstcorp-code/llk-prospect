@@ -1,9 +1,11 @@
 import { ToastProvider } from "@/components/common/toast";
 import { AppShell } from "@/components/layout/app-shell";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LeadsProvider } from "@/store/leads-store";
+import { DealsProvider } from "@/store/deals-store";
 import { ProfileProvider } from "@/store/profile-store";
 import { ProspectingProvider } from "@/store/prospecting-store";
+import { ServicesProvider } from "@/store/services-store";
+import { TasksProvider } from "@/store/tasks-store";
 
 /**
  * Providers do painel. Ficam neste grupo de rotas (e não no layout raiz)
@@ -15,11 +17,15 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
     <ToastProvider>
       <TooltipProvider delayDuration={200}>
         <ProfileProvider>
-          <ProspectingProvider>
-            <LeadsProvider>
-              <AppShell>{children}</AppShell>
-            </LeadsProvider>
-          </ProspectingProvider>
+          <ServicesProvider>
+            <ProspectingProvider>
+              <DealsProvider>
+                <TasksProvider>
+                  <AppShell>{children}</AppShell>
+                </TasksProvider>
+              </DealsProvider>
+            </ProspectingProvider>
+          </ServicesProvider>
         </ProfileProvider>
       </TooltipProvider>
     </ToastProvider>

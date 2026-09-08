@@ -4,6 +4,7 @@ import {
   estimateValue,
   recommendGeoapifyServiceId,
 } from "@/lib/prospecting";
+import type { ServiceCatalog } from "@/lib/service-catalog";
 import type { Business } from "@/types";
 import { toCategoryId } from "./categories";
 import type { GeoapifyFeature } from "./client";
@@ -11,6 +12,7 @@ import type { GeoapifyFeature } from "./client";
 export function toBusiness(
   feature: GeoapifyFeature,
   foundAt: string,
+  catalog: ServiceCatalog,
   fallbackId?: string
 ): Business {
   const place = feature.properties;
@@ -51,7 +53,7 @@ export function toBusiness(
     score: computeGeoapifyScore(scoreInput),
     problem: deriveGeoapifyProblem(scoreInput),
     recommendedServiceId: serviceId,
-    estimatedValue: estimateValue(serviceId),
+    estimatedValue: estimateValue(serviceId, catalog),
     status: null,
     foundAt,
   };

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { MOCK_SERVICES } from "@/data/mockServices";
+import { DEFAULT_SERVICES } from "@/data/seeds/services";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { ServiceOffering } from "@/types";
 
@@ -39,7 +39,7 @@ function toServiceRow(service: ServiceOffering): ServiceRow {
 }
 
 export async function listStoredServices(): Promise<ServiceOffering[]> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("services")
     .select("*")
@@ -50,7 +50,7 @@ export async function listStoredServices(): Promise<ServiceOffering[]> {
     return (data as ServiceRow[]).map(fromServiceRow);
   }
 
-  const defaults = MOCK_SERVICES.map(toServiceRow);
+  const defaults = DEFAULT_SERVICES.map(toServiceRow);
   const { data: seeded, error: seedError } = await supabase
     .from("services")
     .upsert(defaults, { onConflict: "id" })
@@ -63,6 +63,21 @@ export async function listStoredServices(): Promise<ServiceOffering[]> {
   return ((seeded ?? []) as ServiceRow[]).map(fromServiceRow);
 }
 
+/** Busca um serviço pelo id, sem semear o catálogo. */
+export async function getStoredService(
+  id: string
+): Promise<ServiceOffering | null> {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`Falha ao carregar serviço: ${error.message}`);
+  return data ? fromServiceRow(data as ServiceRow) : null;
+}
+
 export async function createStoredService(
   input: Omit<ServiceOffering, "id">
 ): Promise<ServiceOffering> {
@@ -70,7 +85,7 @@ export async function createStoredService(
     ...input,
     id: `service-${crypto.randomUUID()}`,
   };
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("services")
     .insert(toServiceRow(service))
@@ -85,7 +100,7 @@ export async function updateStoredService(
   id: string,
   input: Omit<ServiceOffering, "id">
 ): Promise<ServiceOffering> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("services")
     .update(toServiceRow({ ...input, id }))
@@ -98,7 +113,7 @@ export async function updateStoredService(
 }
 
 export async function deleteStoredService(id: string): Promise<void> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { error } = await supabase.from("services").delete().eq("id", id);
   if (error) throw new Error(`Falha ao remover serviço: ${error.message}`);
 }

@@ -1,4 +1,5 @@
 import { CATEGORIES } from "@/data/categories";
+import type { ServiceCatalog } from "@/lib/service-catalog";
 import type { Business, SearchFilters } from "@/types";
 import { CATEGORY_TO_PLACE_TYPE } from "./categories";
 import { geocodeCity, textSearch } from "./client";
@@ -28,7 +29,8 @@ function today(): string {
  * para que o raio escolhido na interface seja respeitado.
  */
 export async function searchLiveBusinesses(
-  filters: SearchFilters
+  filters: SearchFilters,
+  catalog: ServiceCatalog
 ): Promise<Business[]> {
   const center = filters.city
     ? await geocodeCity(filters.city, filters.state)
@@ -45,5 +47,5 @@ export async function searchLiveBusinesses(
   });
 
   const foundAt = today();
-  return places.map((place) => toBusiness(place, foundAt));
+  return places.map((place) => toBusiness(place, foundAt, catalog));
 }

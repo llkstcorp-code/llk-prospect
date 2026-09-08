@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AddDealButton } from "@/components/business/add-deal-button";
 import {
   PresenceIndicator,
   RatingInline,
@@ -86,9 +87,12 @@ export function BusinessTable({ businesses }: BusinessTableProps) {
               </div>
             </TableCell>
             <TableCell className="pr-5 text-right">
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/empresas/${business.id}`}>Analisar</Link>
-              </Button>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/empresas/${business.id}`}>Analisar</Link>
+                </Button>
+                <AddDealButton business={business} />
+              </div>
             </TableCell>
           </TableRow>
         ))}

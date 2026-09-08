@@ -32,9 +32,7 @@ export function ProfileForm() {
   }
 
   const isDirty =
-    form.name !== profile.name ||
-    form.email !== profile.email ||
-    form.company !== profile.company;
+    form.name !== profile.name || form.company !== profile.company;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -73,15 +71,21 @@ export function ProfileForm() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="profile-email">Email</Label>
+              {/*
+                O e-mail é a identidade da conta no Supabase Auth: trocá-lo
+                exige confirmação pelo endereço novo, então não é um campo de
+                formulário comum.
+              */}
               <Input
                 id="profile-email"
                 type="email"
                 value={form.email}
-                onChange={(event) =>
-                  setForm({ ...form, email: event.target.value })
-                }
-                required
+                readOnly
+                disabled
               />
+              <p className="text-xs text-muted-foreground">
+                Para trocar o e-mail de acesso, fale com o administrador.
+              </p>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="profile-company">Empresa</Label>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import { matchesCriteria, sortBusinesses } from "@/lib/business-filters";
 import { searchGeoapifyBusinesses } from "@/services/geoapify/search";
 import { searchLiveBusinesses } from "@/services/places/search";
@@ -8,6 +9,7 @@ import {
   recordBusinessSearch,
   upsertBusinesses,
 } from "@/services/repositories/businesses-repository";
+import { listStoredServices } from "@/services/repositories/services-repository";
 import type { Business, BusinessSort, SearchFilters, SearchResult } from "@/types";
 
 interface SearchRequestBody {
@@ -18,6 +20,9 @@ interface SearchRequestBody {
 export const maxDuration = 180;
 
 export async function POST(request: Request) {
+  const denied = await guardSession();
+  if (denied) return denied;
+
   let body: SearchRequestBody;
   try {
     body = (await request.json()) as SearchRequestBody;
@@ -38,13 +43,16 @@ export async function POST(request: Request) {
 
   try {
     const provider = getBusinessesProvider();
+    // O valor estimado de cada empresa sai do preço do serviço recomendado,
+    // então o catálogo precisa estar em mãos antes de mapear os resultados.
+    const catalog = await listStoredServices();
     let matches: Business[];
 
     if (provider === "geoapify") {
-      const live = await searchGeoapifyBusinesses(filters);
+      const live = await searchGeoapifyBusinesses(filters, catalog);
       matches = live.filter((business) => matchesCriteria(business, filters));
     } else if (provider === "google") {
-      const live = await searchLiveBusinesses(filters);
+      const live = await searchLiveBusinesses(filters, catalog);
       matches = live.filter((business) => matchesCriteria(business, filters));
     } else {
       return NextResponse.json(

@@ -4,6 +4,7 @@ import {
   estimateValue,
   recommendServiceId,
 } from "@/lib/prospecting";
+import type { ServiceCatalog } from "@/lib/service-catalog";
 import type { Business } from "@/types";
 import { toCategoryId } from "./categories";
 import type { PlaceAddressComponent, PlaceResource } from "./client";
@@ -29,7 +30,11 @@ function toStreetAddress(formattedAddress: string | undefined): string {
  * `instagram` fica nulo porque a Places API não expõe redes sociais; ele é
  * preenchido depois pelo enriquecimento sob demanda.
  */
-export function toBusiness(place: PlaceResource, foundAt: string): Business {
+export function toBusiness(
+  place: PlaceResource,
+  foundAt: string,
+  catalog: ServiceCatalog
+): Business {
   const rating = place.rating ?? 0;
   const reviews = place.userRatingCount ?? 0;
   const website = place.websiteUri ?? null;
@@ -63,7 +68,7 @@ export function toBusiness(place: PlaceResource, foundAt: string): Business {
     score: computeScore(input),
     problem: deriveProblem(input),
     recommendedServiceId: serviceId,
-    estimatedValue: estimateValue(serviceId),
+    estimatedValue: estimateValue(serviceId, catalog),
     status: null,
     foundAt,
   };

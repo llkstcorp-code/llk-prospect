@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { guardSession } from "@/lib/auth/session";
 import { buildTemplateAnalysis } from "@/services/ai";
 import { generateBusinessCopy } from "@/services/gemini";
 import { getStoredBusiness } from "@/services/repositories/businesses-repository";
+import { listStoredServices } from "@/services/repositories/services-repository";
 import type { Business } from "@/types";
 
 interface AnalyzeRequestBody {
@@ -17,6 +19,9 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
+  const denied = await guardSession();
+  if (denied) return denied;
+
   try {
     // A tela já carregou a empresa; aceitamos o corpo para não consultar a
     // fonte de novo, e caímos no armazenamento quando ele não vem.
@@ -30,7 +35,8 @@ export async function POST(
       );
     }
 
-    const analysis = buildTemplateAnalysis(business);
+    const catalog = await listStoredServices();
+    const analysis = buildTemplateAnalysis(business, catalog);
     const copy = await generateBusinessCopy(business, analysis.service.name);
 
     return NextResponse.json(

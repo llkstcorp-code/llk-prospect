@@ -6,10 +6,12 @@ Supabase somente no servidor.
 ## Publicação
 
 - Nunca publique `.env.local` ou `SUPABASE_SECRET_KEY` no GitHub.
-- Defina `APP_ACCESS_PASSWORD` em todo ambiente de produção.
+- Crie as contas pelo painel do Supabase. Não existe cadastro aberto.
 - Use apenas HTTPS em produção. A Vercel fornece HTTPS automaticamente.
-- Não desative a proteção compartilhada antes de implementar autenticação real
-  e políticas RLS por usuário.
+- Não use `SUPABASE_SECRET_KEY` para responder requisições do painel: ela ignora
+  o RLS e devolveria os dados de todos os vendedores.
+- Ao criar tabela nova, escreva a policy junto. RLS ligado sem policy bloqueia
+  tudo; RLS com policy errada libera tudo.
 - Restrinja as chaves do Geoapify e do Google conforme as opções oferecidas por
   cada provedor.
 

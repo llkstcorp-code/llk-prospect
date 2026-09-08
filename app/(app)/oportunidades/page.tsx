@@ -19,11 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES, getCategoryLabel } from "@/data/categories";
-import { getServiceName, MOCK_SERVICES } from "@/data/mockServices";
-import { LEAD_STATUSES } from "@/lib/constants";
-import { useLeads } from "@/store/leads-store";
+import { DEAL_STATUSES } from "@/lib/constants";
+import { getServiceName } from "@/lib/service-catalog";
+import { useDeals } from "@/store/deals-store";
 import { useProspecting } from "@/store/prospecting-store";
-import type { Business, CategoryId, LeadStatus, ScoreTierId } from "@/types";
+import { useServices } from "@/store/services-store";
+import type { Business, CategoryId, DealStatus, ScoreTierId } from "@/types";
 
 const ALL = "todos";
 
@@ -32,7 +33,7 @@ interface OpportunityFilters {
   category: CategoryId | typeof ALL;
   city: string;
   serviceId: string;
-  status: LeadStatus | typeof ALL;
+  status: DealStatus | typeof ALL;
 }
 
 const DEFAULT_FILTERS: OpportunityFilters = {
@@ -45,8 +46,9 @@ const DEFAULT_FILTERS: OpportunityFilters = {
 
 export default function OpportunitiesPage() {
   const { toast } = useToast();
-  const { findByBusinessId, addLead } = useLeads();
+  const { openDealOfBusiness, addDeal } = useDeals();
   const { businesses: discoveredBusinesses } = useProspecting();
+  const { catalog } = useServices();
   const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
 
@@ -60,8 +62,10 @@ export default function OpportunitiesPage() {
     [businesses]
   );
 
-  function getStatus(business: Business): LeadStatus {
-    return findByBusinessId(business.id)?.status ?? "novo";
+  // O status mostrado é o do negócio aberto. Sem negócio aberto, a empresa é
+  // uma oportunidade nova de novo — mesmo tendo fechado algo no passado.
+  function getStatus(business: Business): DealStatus {
+    return openDealOfBusiness(business.id)?.status ?? "novo";
   }
 
   const visible = businesses.filter((business) => {
@@ -90,18 +94,23 @@ export default function OpportunitiesPage() {
     (value) => value !== ALL
   ).length;
 
-  async function handleAddLead(business: Business) {
+  async function handleAddDeal(business: Business) {
     setPendingId(business.id);
     try {
-      await addLead(business.id);
+      await addDeal({
+        businessId: business.id,
+        title: "",
+        serviceId: business.recommendedServiceId,
+        contactId: null,
+      });
       toast({
-        title: "Oportunidade adicionada aos leads",
+        title: "Oportunidade adicionada ao funil",
         description: `${business.name} está na etapa Novo do seu CRM.`,
         variant: "success",
       });
     } catch {
       toast({
-        title: "Não foi possível adicionar o lead",
+        title: "Não foi possível abrir o negócio",
         variant: "error",
       });
     } finally {
@@ -187,7 +196,7 @@ export default function OpportunitiesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>Todos os serviços</SelectItem>
-                {MOCK_SERVICES.map((service) => (
+                {catalog.map((service) => (
                   <SelectItem key={service.id} value={service.id}>
                     {service.name}
                   </SelectItem>
@@ -206,7 +215,7 @@ export default function OpportunitiesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>Todos os status</SelectItem>
-                {LEAD_STATUSES.map((status) => (
+                {DEAL_STATUSES.map((status) => (
                   <SelectItem key={status.id} value={status.id}>
                     {status.label}
                   </SelectItem>
@@ -263,11 +272,14 @@ export default function OpportunitiesPage() {
               <OpportunityCard
                 key={business.id}
                 business={business}
-                serviceName={getServiceName(business.recommendedServiceId)}
+                serviceName={getServiceName(
+                  catalog,
+                  business.recommendedServiceId
+                )}
                 status={getStatus(business)}
-                isInCrm={Boolean(findByBusinessId(business.id))}
+                isInCrm={Boolean(openDealOfBusiness(business.id))}
                 isPending={pendingId === business.id}
-                onAddLead={() => void handleAddLead(business)}
+                onAddDeal={() => void handleAddDeal(business)}
               />
             ))}
           </div>

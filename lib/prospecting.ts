@@ -1,5 +1,5 @@
-import { MOCK_SERVICES } from "@/data/mockServices";
 import { SCORE_MAX, SCORE_MIN } from "@/lib/score";
+import { getServicePrice, type ServiceCatalog } from "@/lib/service-catalog";
 import type { CategoryId } from "@/types";
 
 /**
@@ -68,8 +68,11 @@ export function recommendServiceId(input: ScoreInput): string {
   return computeScore(input) >= 60 ? "seo" : "manutencao";
 }
 
-export function estimateValue(serviceId: string): number {
-  return MOCK_SERVICES.find((service) => service.id === serviceId)?.price ?? 0;
+export function estimateValue(
+  serviceId: string,
+  catalog: ServiceCatalog
+): number {
+  return getServicePrice(catalog, serviceId);
 }
 
 export interface GeoapifyScoreInput {
