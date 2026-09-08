@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  AlarmClock,
   ArrowRight,
   Building2,
   Handshake,
@@ -19,6 +20,7 @@ import { ConversionFunnel } from "@/components/dashboard/conversion-funnel";
 import { DealsChart } from "@/components/dashboard/deals-chart";
 import { PriorityOpportunities } from "@/components/dashboard/priority-opportunities";
 import { Button } from "@/components/ui/button";
+import { STALE_DEAL_DAYS } from "@/lib/constants";
 import {
   Card,
   CardAction,
@@ -54,6 +56,9 @@ export default function DashboardPage() {
   const { deals, isLoading: isLoadingDeals } = useDeals();
   const isLoading = isLoadingBusinesses || isLoadingDeals;
   const [greeting] = React.useState(getGreeting);
+  // O relógio entra uma vez, no estado: ler a hora durante a renderização torna
+  // o componente impuro e o React Compiler recusa.
+  const [now] = React.useState(() => Date.now());
 
   const opportunities = businesses
     .filter((business) => business.score >= 70)
@@ -66,6 +71,15 @@ export default function DashboardPage() {
     ["proposta", "fechado"].includes(deal.status)
   ).length;
   const closed = deals.filter((deal) => deal.status === "fechado").length;
+
+  // Negócio parado é o que está aberto e não recebe contato há duas semanas.
+  // É a métrica que aponta para uma ação, e não só para o passado.
+  const staleSince = now - STALE_DEAL_DAYS * 24 * 60 * 60 * 1000;
+  const stale = deals.filter((deal) => {
+    if (deal.status === "fechado" || deal.status === "perdido") return false;
+    const since = deal.lastContactAt ?? deal.createdAt;
+    return new Date(since).getTime() < staleSince;
+  }).length;
   const conversion = businesses.length
     ? Math.round((closed / businesses.length) * 100)
     : 0;
@@ -101,6 +115,13 @@ export default function DashboardPage() {
             <StatCard label="Negócios contatados" value={contacted} trendLabel="" trend="neutral" icon={Send} />
             <StatCard label="Negócios fechados" value={closed} trendLabel="" trend="neutral" icon={Handshake} />
             <StatCard label="Taxa de conversão" value={conversion} valueSuffix="%" trendLabel="" trend="neutral" icon={Percent} />
+            <StatCard
+              label={`Parados há ${STALE_DEAL_DAYS}+ dias`}
+              value={stale}
+              trendLabel=""
+              trend={stale > 0 ? "down" : "neutral"}
+              icon={AlarmClock}
+            />
           </section>
 
           {!hasData ? (

@@ -10,7 +10,7 @@ import { KanbanBoard } from "@/components/deals/kanban-board";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getDealStatusConfig, LEAD_STATUSES } from "@/lib/constants";
+import { getDealStatusConfig, DEAL_STATUSES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import { useDeals } from "@/store/deals-store";
 import type { Deal, DealStatus } from "@/types";
@@ -49,7 +49,7 @@ export default function CrmPage() {
 
       {isLoading ? (
         <div className="flex gap-4 overflow-hidden">
-          {LEAD_STATUSES.map((status) => (
+          {DEAL_STATUSES.map((status) => (
             <Skeleton key={status.id} className="h-72 w-[17rem] shrink-0" />
           ))}
         </div>

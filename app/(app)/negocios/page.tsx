@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES } from "@/data/categories";
-import { getDealStatusConfig, LEAD_STATUSES } from "@/lib/constants";
+import { getDealStatusConfig, DEAL_STATUSES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import { useDeals } from "@/store/deals-store";
 import type { CategoryId, Deal, DealStatus } from "@/types";
@@ -134,7 +134,7 @@ export default function DealsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Todos os status</SelectItem>
-              {LEAD_STATUSES.map((status) => (
+              {DEAL_STATUSES.map((status) => (
                 <SelectItem key={status.id} value={status.id}>
                   {status.label}
                 </SelectItem>

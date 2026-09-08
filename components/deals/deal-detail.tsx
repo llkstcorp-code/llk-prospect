@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { DetailSkeleton } from "@/components/common/loading-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Timeline } from "@/components/common/timeline";
+import { NextActionCard } from "@/components/tasks/next-action-card";
 import { useToast } from "@/components/common/toast";
 import { DealNotes } from "@/components/deals/deal-notes";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getCategoryLabel } from "@/data/categories";
-import { getDealStatusConfig, LEAD_STATUSES } from "@/lib/constants";
+import { getDealStatusConfig, DEAL_STATUSES } from "@/lib/constants";
 import {
   formatCurrency,
   formatLongDate,
@@ -219,6 +220,13 @@ export function DealDetail({ dealId }: DealDetailProps) {
             </CardContent>
           </Card>
 
+          <NextActionCard
+            dealId={deal.id}
+            businessId={deal.businessId}
+            dealTitle={deal.title}
+            className="[--card-spacing:--spacing(5)]"
+          />
+
           <Card className="[--card-spacing:--spacing(5)]">
             <CardHeader>
               <CardTitle>Histórico</CardTitle>
@@ -279,7 +287,7 @@ export function DealDetail({ dealId }: DealDetailProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LEAD_STATUSES.map((status) => (
+                  {DEAL_STATUSES.map((status) => (
                     <SelectItem key={status.id} value={status.id}>
                       {status.label}
                     </SelectItem>

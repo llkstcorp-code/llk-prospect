@@ -1,4 +1,5 @@
 import {
+  CalendarCheck,
   Kanban,
   LayoutDashboard,
   Presentation,
@@ -17,6 +18,12 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  {
+    href: "/hoje",
+    label: "Hoje",
+    icon: CalendarCheck,
+    match: "/hoje",
+  },
   {
     href: "/dashboard",
     label: "Dashboard",

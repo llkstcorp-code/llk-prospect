@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { isNavItemActive, NAV_ITEMS } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
+import { useTasks } from "@/store/tasks-store";
 
 interface SidebarNavProps {
   /** Disparado ao navegar — usado para fechar o drawer no mobile. */
@@ -13,6 +14,7 @@ interface SidebarNavProps {
 
 export function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
+  const { overdueCount } = useTasks();
 
   return (
     <nav className="flex flex-col gap-0.5">
@@ -40,6 +42,18 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
               )}
             />
             {item.label}
+            {/*
+              O contador só existe quando há atraso: um "0" permanente vira
+              ruído e a pessoa para de olhar para ele.
+            */}
+            {item.href === "/hoje" && overdueCount > 0 ? (
+              <span
+                aria-label={`${overdueCount} ${overdueCount === 1 ? "tarefa atrasada" : "tarefas atrasadas"}`}
+                className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium tabular-nums text-white"
+              >
+                {overdueCount}
+              </span>
+            ) : null}
           </Link>
         );
       })}

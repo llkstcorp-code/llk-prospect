@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { KanbanCard } from "@/components/deals/kanban-card";
-import { LEAD_STATUSES } from "@/lib/constants";
+import { DEAL_STATUSES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Deal, DealStatus } from "@/types";
@@ -33,7 +33,7 @@ export function KanbanBoard({ deals, onStatusChange }: KanbanBoardProps) {
   return (
     <div className="scrollbar-slim -mx-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
       <div className="flex min-w-max gap-4">
-        {LEAD_STATUSES.map((status) => {
+        {DEAL_STATUSES.map((status) => {
           const columnDeals = deals.filter((deal) => deal.status === status.id);
           const total = columnDeals.reduce(
             (sum, deal) => sum + deal.estimatedValue,

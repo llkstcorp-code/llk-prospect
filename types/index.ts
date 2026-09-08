@@ -180,6 +180,49 @@ export interface Deal {
   notes: DealNote[];
 }
 
+export type TaskKind =
+  | "followup"
+  | "ligacao"
+  | "reuniao"
+  | "proposta"
+  | "outro";
+
+/** Próxima ação do funil. O que já aconteceu fica em `TimelineEvent`. */
+export interface Task {
+  id: string;
+  /** Responsável. Todos veem todas; alguém executa cada uma. */
+  ownerId: string;
+  ownerName: string;
+  dealId: string | null;
+  dealTitle: string | null;
+  businessId: string | null;
+  businessName: string | null;
+  title: string;
+  kind: TaskKind;
+  /** ISO date-time do vencimento. */
+  dueAt: string;
+  /** ISO date-time da conclusão; null enquanto está aberta. */
+  doneAt: string | null;
+  /** Criada pelo sistema ao mover um negócio de etapa. */
+  isAutomatic: boolean;
+  createdAt: string;
+}
+
+export interface TaskInput {
+  title: string;
+  kind: TaskKind;
+  dueAt: string;
+  dealId?: string | null;
+  businessId?: string | null;
+  contactId?: string | null;
+  ownerId?: string | null;
+}
+
+export interface TaskKindConfig {
+  id: TaskKind;
+  label: string;
+}
+
 /** O que a interface envia para abrir um negócio. */
 export interface DealInput {
   businessId: string;

@@ -14,6 +14,9 @@ export const API_ENDPOINTS = {
   contactsOf: (businessId: string) =>
     `/api/contatos?empresa=${encodeURIComponent(businessId)}`,
   contact: (id: string) => `/api/contatos/${id}`,
+  tasks: "/api/tarefas",
+  tasksOf: (scope: string) => `/api/tarefas?escopo=${scope}`,
+  task: (id: string) => `/api/tarefas/${id}`,
   dashboard: "/api/dashboard",
 } as const;
 

@@ -14,6 +14,10 @@ import type {
 } from "@/types";
 import { getStoredBusiness } from "./businesses-repository";
 import { getStoredService } from "./services-repository";
+import {
+  closeAutomaticFollowUp,
+  scheduleAutomaticFollowUp,
+} from "./tasks-repository";
 
 interface DealRow {
   id: string;
@@ -360,6 +364,15 @@ export async function updateStoredDealStatus(
   });
   if (eventError) {
     throw new Error(`Falha ao registrar histórico: ${eventError.message}`);
+  }
+
+  // A agenda acompanha o funil: negócio encerrado não deixa lembrete solto, e
+  // etapa em que a bola está com o vendedor agenda a volta sozinha.
+  if (CLOSED_STATUSES.includes(status)) {
+    await closeAutomaticFollowUp(id);
+  } else {
+    const user = await requireUser();
+    await scheduleAutomaticFollowUp(id, current.businessId, status, user.id);
   }
 
   const deal = await getStoredDeal(id);

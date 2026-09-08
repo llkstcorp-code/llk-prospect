@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCategoryLabel } from "@/data/categories";
-import { LEAD_STATUSES } from "@/lib/constants";
+import { DEAL_STATUSES } from "@/lib/constants";
 import { formatCurrency, formatRelativeDate } from "@/lib/format";
 import { getScoreTier, SCORE_TIER_STYLES } from "@/lib/score";
 import { cn } from "@/lib/utils";
@@ -105,7 +105,7 @@ export function DealsTable({ deals, onStatusChange }: DealsTableProps) {
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel>Mover para</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {LEAD_STATUSES.map((status) => (
+                    {DEAL_STATUSES.map((status) => (
                       <DropdownMenuItem
                         key={status.id}
                         disabled={status.id === deal.status}

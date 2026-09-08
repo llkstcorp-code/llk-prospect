@@ -1,5 +1,6 @@
 import type {
   BusinessSort,
+  TaskKindConfig,
   DealStatus,
   DealStatusConfig,
   PriceModel,
@@ -21,11 +22,11 @@ export const SORT_OPTIONS: { value: BusinessSort; label: string }[] = [
 ];
 
 /** Ordem das colunas do CRM e das etapas do funil de vendas. */
-export const LEAD_STATUSES: DealStatusConfig[] = [
+export const DEAL_STATUSES: DealStatusConfig[] = [
   {
     id: "novo",
     label: "Novo",
-    description: "Deal adicionado, ainda sem contato.",
+    description: "Negócio aberto, ainda sem contato.",
   },
   {
     id: "contatado",
@@ -51,13 +52,13 @@ export const LEAD_STATUSES: DealStatusConfig[] = [
   { id: "perdido", label: "Perdido", description: "Negócio encerrado sem venda." },
 ];
 
-export const LEAD_STATUS_ORDER: DealStatus[] = LEAD_STATUSES.map(
+export const DEAL_STATUS_ORDER: DealStatus[] = DEAL_STATUSES.map(
   (status) => status.id
 );
 
 export function getDealStatusConfig(status: DealStatus): DealStatusConfig {
   return (
-    LEAD_STATUSES.find((item) => item.id === status) ?? LEAD_STATUSES[0]
+    DEAL_STATUSES.find((item) => item.id === status) ?? DEAL_STATUSES[0]
   );
 }
 
@@ -127,3 +128,31 @@ export const BRAZILIAN_STATES = [
   "SE",
   "TO",
 ] as const;
+
+/** Tipos de tarefa oferecidos ao agendar uma próxima ação. */
+export const TASK_KINDS: TaskKindConfig[] = [
+  { id: "followup", label: "Follow-up" },
+  { id: "ligacao", label: "Ligação" },
+  { id: "reuniao", label: "Reunião" },
+  { id: "proposta", label: "Proposta" },
+  { id: "outro", label: "Outro" },
+];
+
+export function getTaskKindLabel(kind: TaskKindConfig["id"]): string {
+  return TASK_KINDS.find((item) => item.id === kind)?.label ?? "Tarefa";
+}
+
+/**
+ * Prazo do follow-up automático por etapa, em dias.
+ *
+ * Só as etapas em que a bola está com o vendedor. "Respondeu" e "Reunião" não
+ * entram: ali a próxima ação depende do que foi combinado, e um lembrete
+ * genérico só faria ruído na agenda.
+ */
+export const AUTOMATIC_FOLLOWUP_DAYS: Partial<Record<DealStatus, number>> = {
+  contatado: 3,
+  proposta: 2,
+};
+
+/** Dias sem contato a partir dos quais um negócio conta como parado. */
+export const STALE_DEAL_DAYS = 14;

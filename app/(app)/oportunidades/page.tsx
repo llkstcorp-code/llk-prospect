@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES, getCategoryLabel } from "@/data/categories";
-import { LEAD_STATUSES } from "@/lib/constants";
+import { DEAL_STATUSES } from "@/lib/constants";
 import { getServiceName } from "@/lib/service-catalog";
 import { useDeals } from "@/store/deals-store";
 import { useProspecting } from "@/store/prospecting-store";
@@ -215,7 +215,7 @@ export default function OpportunitiesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>Todos os status</SelectItem>
-                {LEAD_STATUSES.map((status) => (
+                {DEAL_STATUSES.map((status) => (
                   <SelectItem key={status.id} value={status.id}>
                     {status.label}
                   </SelectItem>

@@ -5,6 +5,7 @@ import { DealsProvider } from "@/store/deals-store";
 import { ProfileProvider } from "@/store/profile-store";
 import { ProspectingProvider } from "@/store/prospecting-store";
 import { ServicesProvider } from "@/store/services-store";
+import { TasksProvider } from "@/store/tasks-store";
 
 /**
  * Providers do painel. Ficam neste grupo de rotas (e não no layout raiz)
@@ -19,7 +20,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           <ServicesProvider>
             <ProspectingProvider>
               <DealsProvider>
-                <AppShell>{children}</AppShell>
+                <TasksProvider>
+                  <AppShell>{children}</AppShell>
+                </TasksProvider>
               </DealsProvider>
             </ProspectingProvider>
           </ServicesProvider>
