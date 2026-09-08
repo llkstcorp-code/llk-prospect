@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Building2, Loader2, Plus, Send } from "lucide-react";
 
 import { BusinessInfoCard } from "@/components/business/business-info-card";
+import { ContactsCard } from "@/components/business/contacts-card";
 import { OpportunityAnalysis } from "@/components/business/opportunity-analysis";
 import { PitchCard } from "@/components/business/pitch-card";
 import { RecommendedServiceCard } from "@/components/business/recommended-service-card";
@@ -22,7 +23,7 @@ import { analyzeBusiness } from "@/services/ai";
 import { enrichBusiness, getBusiness } from "@/services/businesses";
 import { useLeads } from "@/store/leads-store";
 import { useServices } from "@/store/services-store";
-import type { Business, BusinessAnalysis } from "@/types";
+import type { Business, BusinessAnalysis, Contact } from "@/types";
 
 type ContactChannel = "whatsapp" | "direto";
 
@@ -44,6 +45,9 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
   const [isEnriching, setIsEnriching] = React.useState(false);
   const [hasEnriched, setHasEnriched] = React.useState(false);
+  const [primaryContact, setPrimaryContact] = React.useState<Contact | null>(
+    null
+  );
 
   React.useEffect(() => {
     // A análise usa o serviço recomendado, então espera o catálogo chegar —
@@ -132,6 +136,15 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
     try {
       const target = lead ?? (await addLead(business.id));
       await registerContact(target.id);
+
+      // Havendo contato principal, o registro cita a pessoa e o número dela.
+      // Sem contato cadastrado, sobra o telefone geral da empresa.
+      const destination =
+        primaryContact?.whatsapp ?? primaryContact?.phone ?? business.phone;
+      const who = primaryContact
+        ? `${primaryContact.name} (${destination})`
+        : destination;
+
       toast({
         title:
           channel === "whatsapp"
@@ -139,7 +152,7 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
             : "Contato registrado",
         description:
           channel === "whatsapp"
-            ? `O envio real pelo WhatsApp para ${business.phone} será conectado na integração.`
+            ? `O envio real pelo WhatsApp para ${who} será conectado na integração.`
             : `${business.name} avançou para a etapa Contatado.`,
         variant: "success",
       });
@@ -251,9 +264,17 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
           onAddToCrm={() => void handleAddLead()}
           className="lg:col-start-2 lg:row-start-1"
         />
+        <ContactsCard
+          businessId={business.id}
+          onPrimaryChange={setPrimaryContact}
+          className="lg:col-start-2 lg:row-start-2"
+        />
         <PitchCard
           pitch={analysis.pitch}
-          phone={business.phone}
+          phone={
+            primaryContact?.whatsapp ?? primaryContact?.phone ?? business.phone
+          }
+          contactName={primaryContact?.name}
           onSendWhatsApp={() => void handleContact("whatsapp")}
           className="lg:col-start-1 lg:row-start-3"
         />
@@ -263,7 +284,11 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
         open={isContactDialogOpen}
         onOpenChange={setIsContactDialogOpen}
         title={`Registrar contato com ${business.name}?`}
-        description="O lead será criado caso ainda não exista e avançará para a etapa Contatado, com o registro no histórico."
+        description={
+          primaryContact
+            ? `O contato com ${primaryContact.name} entra no histórico e o lead avança para a etapa Contatado.`
+            : "O lead será criado caso ainda não exista e avançará para a etapa Contatado, com o registro no histórico."
+        }
         confirmLabel="Registrar contato"
         onConfirm={() => handleContact("direto")}
       />

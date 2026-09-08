@@ -10,6 +10,10 @@ export const API_ENDPOINTS = {
   services: "/api/services",
   service: (id: string) => `/api/services/${id}`,
   profile: "/api/perfil",
+  contacts: "/api/contatos",
+  contactsOf: (businessId: string) =>
+    `/api/contatos?empresa=${encodeURIComponent(businessId)}`,
+  contact: (id: string) => `/api/contatos/${id}`,
   dashboard: "/api/dashboard",
 } as const;
 

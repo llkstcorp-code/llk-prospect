@@ -74,7 +74,28 @@ export interface Business {
   status: LeadStatus | null;
   /** ISO date — usado na ordenação por "mais recentes". */
   foundAt: string;
+  /** Verdadeiro depois que a empresa fecha o primeiro negócio. */
+  isClient?: boolean;
 }
+
+/** Pessoa de contato dentro de uma empresa. */
+export interface Contact {
+  id: string;
+  businessId: string;
+  name: string;
+  /** Cargo ou papel: "dono", "gerente", "responsável pelo marketing". */
+  role: string;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  /** O contato que a abordagem usa por padrão. Um por empresa. */
+  isPrimary: boolean;
+  notes: string;
+  /** ISO date. */
+  createdAt: string;
+}
+
+export type ContactInput = Omit<Contact, "id" | "createdAt">;
 
 export type ScoreTierId = "baixa" | "moderada" | "boa" | "excelente";
 
