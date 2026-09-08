@@ -91,7 +91,7 @@ export function OpportunityCard({
           ) : (
             <Plus data-icon="inline-start" />
           )}
-          {isInCrm ? "No CRM" : "Adicionar"}
+          {isInCrm ? "No funil" : "Abrir negócio"}
         </Button>
       </div>
     </article>

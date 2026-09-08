@@ -222,9 +222,28 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
 
           <div className="flex flex-wrap items-center gap-2">
             {deal ? (
-              <Button asChild>
-                <Link href={`/negocios/${deal.id}`}>Ver negócio aberto</Link>
-              </Button>
+              <>
+                <Button asChild>
+                  <Link href={`/negocios/${deal.id}`}>Ver negócio aberto</Link>
+                </Button>
+                {/*
+                  Ter um negócio aberto não impede abrir outro — renovação e
+                  upsell acontecem em paralelo. Enquanto esta ação só existia
+                  no card lá embaixo, ela era invisível na prática.
+                */}
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDealDialogOpen(true)}
+                  disabled={isAddingDeal}
+                >
+                  {isAddingDeal ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Plus data-icon="inline-start" />
+                  )}
+                  Abrir outro
+                </Button>
+              </>
             ) : (
               <Button
                 onClick={() => setIsDealDialogOpen(true)}
@@ -273,18 +292,18 @@ export function BusinessDetail({ businessId }: BusinessDetailProps) {
           isInCrm={Boolean(deal)}
           isPending={isAddingDeal}
           onAddToCrm={() => setIsDealDialogOpen(true)}
-          className="lg:col-start-2 lg:row-start-1"
+          className="lg:col-start-2 lg:row-start-2"
         />
         <ContactsCard
           businessId={business.id}
           onPrimaryChange={setPrimaryContact}
           onContactsChange={setContacts}
-          className="lg:col-start-2 lg:row-start-2"
+          className="lg:col-start-2 lg:row-start-3"
         />
         <DealsOfBusinessCard
           deals={deals}
           onOpenDeal={() => setIsDealDialogOpen(true)}
-          className="lg:col-start-1 lg:row-start-4"
+          className="lg:col-start-2 lg:row-start-1"
         />
         <PitchCard
           pitch={analysis.pitch}

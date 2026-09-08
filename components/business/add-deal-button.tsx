@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Check, Loader2, Plus } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Loader2, Plus } from "lucide-react";
 
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,6 @@ export function AddDealButton({
   // Só bloqueia enquanto houver negócio aberto. Depois de fechado ou perdido,
   // a mesma empresa pode voltar ao funil — é o ponto desta fase.
   const openDeal = openDealOfBusiness(business.id);
-  const isInCrm = Boolean(openDeal);
 
   async function handleClick() {
     setIsPending(true);
@@ -61,21 +61,32 @@ export function AddDealButton({
     }
   }
 
+  // Com negócio aberto, o botão leva até ele em vez de virar um beco sem
+  // saída: é de lá que se acompanha a negociação ou se abre uma segunda.
+  if (openDeal) {
+    return (
+      <Button variant="outline" size={size} className={className} asChild>
+        <Link href={`/negocios/${openDeal.id}`}>
+          <ArrowUpRight data-icon="inline-start" />
+          No funil
+        </Link>
+      </Button>
+    );
+  }
+
   return (
     <Button
       size={size}
       className={className}
       onClick={() => void handleClick()}
-      disabled={isInCrm || isPending}
+      disabled={isPending}
     >
       {isPending ? (
         <Loader2 className="animate-spin" />
-      ) : isInCrm ? (
-        <Check data-icon="inline-start" />
       ) : (
         <Plus data-icon="inline-start" />
       )}
-      {isInCrm ? "No funil" : "Abrir negócio"}
+      Abrir negócio
     </Button>
   );
 }
